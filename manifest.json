@@ -30,10 +30,12 @@
         "src/utils/dom-utils.js",
         "src/content/selection-handler.js",
         "src/ui/highlight-renderer.js",
+        "src/ui/sidebar.js",
         "src/content/content-script.js"
       ],
       "css": [
-        "src/ui/styles/highlights.css"
+        "src/ui/styles/highlights.css",
+        "src/ui/styles/sidebar.css"
       ],
       "run_at": "document_idle"
     }

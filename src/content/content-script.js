@@ -5,21 +5,21 @@
   // Render existing highlights when page loads
   await HighlightRenderer.renderAllHighlights();
 
+  // Initialize sidebar
+  Sidebar.init();
+
   // Listen for messages from background script
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log('[Site Memory] Received message:', message.type);
 
     switch (message.type) {
       case MESSAGE_TYPES.CONTEXT_MENU_SAVE:
-        // Save the current selection
-        SelectionHandler.saveCurrentSelection()
-          .then(result => {
-            sendResponse(result);
-          });
-        return true; // Keep channel open for async response
+        // Show the save modal with note input
+        SelectionHandler.showSaveModal();
+        sendResponse({ success: true });
+        return false;
 
       case MESSAGE_TYPES.GET_HIGHLIGHTS:
-        // Return highlights for current hostname
         StorageManager.getHighlightsByHostname(getCurrentHostname())
           .then(highlights => {
             sendResponse({ highlights });
@@ -31,15 +31,25 @@
     }
   });
 
-  // Add click handler for highlights (for future sidebar integration)
+  // Handle clicks on highlights - show context menu
   document.addEventListener('click', (e) => {
     const highlight = e.target.closest('.site-memory-highlight');
     if (highlight) {
+      e.preventDefault();
+      e.stopPropagation();
       const id = highlight.dataset.highlightId;
-      console.log('[Site Memory] Highlight clicked:', id);
-      // Future: Open sidebar or show note
+      const note = highlight.dataset.note || '';
+      HighlightRenderer.showContextMenu(id, e.clientX, e.clientY, note);
     }
   });
 
-  console.log('[Site Memory] Ready');
+  // Keyboard shortcut: Ctrl+Shift+S to open sidebar
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.shiftKey && e.key === 'S') {
+      e.preventDefault();
+      Sidebar.toggle();
+    }
+  });
+
+  console.log('[Site Memory] Ready - Press Ctrl+Shift+S to open sidebar');
 })();

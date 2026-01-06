@@ -1,6 +1,7 @@
 const HighlightRenderer = {
   highlightClass: 'site-memory-highlight',
-  
+  contextMenu: null,
+
   // Render a single highlight on the page
   renderHighlight(highlight) {
     try {
@@ -11,17 +12,15 @@ const HighlightRenderer = {
         return false;
       }
       
-      // Create highlight wrapper
       const wrapper = document.createElement('mark');
       wrapper.className = this.highlightClass;
       wrapper.dataset.highlightId = highlight.id;
-      wrapper.title = highlight.note || 'Saved highlight';
+      wrapper.dataset.note = highlight.note || '';
+      wrapper.title = highlight.note || 'Click for options';
       
-      // Wrap the range
       try {
         range.surroundContents(wrapper);
       } catch (e) {
-        // Range spans multiple elements, use alternative method
         this.highlightRangeComplex(range, highlight);
       }
       
@@ -38,7 +37,8 @@ const HighlightRenderer = {
     const wrapper = document.createElement('mark');
     wrapper.className = this.highlightClass;
     wrapper.dataset.highlightId = highlight.id;
-    wrapper.title = highlight.note || 'Saved highlight';
+    wrapper.dataset.note = highlight.note || '';
+    wrapper.title = highlight.note || 'Click for options';
     wrapper.appendChild(fragment);
     range.insertNode(wrapper);
   },
@@ -52,7 +52,6 @@ const HighlightRenderer = {
     
     let rendered = 0;
     for (const highlight of highlights) {
-      // Only render highlights for this specific URL or all URL highlights
       if (this.renderHighlight(highlight)) {
         rendered++;
       }
@@ -78,9 +77,65 @@ const HighlightRenderer = {
     const element = document.querySelector(`[data-highlight-id="${highlightId}"]`);
     if (element) {
       DOMUtils.scrollToElement(element);
-      // Flash effect
       element.classList.add('site-memory-flash');
       setTimeout(() => element.classList.remove('site-memory-flash'), 1500);
+    }
+  },
+
+  // Show context menu on highlight click
+  showContextMenu(highlightId, x, y, note) {
+    this.hideContextMenu();
+
+    const menu = document.createElement('div');
+    menu.className = 'site-memory-context-menu';
+    menu.innerHTML = `
+      ${note ? `<button class="view-note">📝 View Note</button>` : ''}
+      <button class="scroll-to">🎯 Scroll to Highlight</button>
+      <button class="delete">🗑️ Delete Highlight</button>
+    `;
+
+    menu.style.left = `${x}px`;
+    menu.style.top = `${y}px`;
+
+    // View note
+    if (note) {
+      menu.querySelector('.view-note').addEventListener('click', () => {
+        alert(`Note: "${note}"`);
+        this.hideContextMenu();
+      });
+    }
+
+    // Scroll to
+    menu.querySelector('.scroll-to').addEventListener('click', () => {
+      this.scrollToHighlight(highlightId);
+      this.hideContextMenu();
+    });
+
+    // Delete
+    menu.querySelector('.delete').addEventListener('click', async () => {
+      const hostname = getCurrentHostname();
+      await StorageManager.deleteHighlight(hostname, highlightId);
+      this.removeHighlight(highlightId);
+      this.hideContextMenu();
+      if (window.Sidebar) {
+        Sidebar.refresh();
+      }
+    });
+
+    document.body.appendChild(menu);
+    this.contextMenu = menu;
+
+    // Close on click outside
+    setTimeout(() => {
+      document.addEventListener('click', this.hideContextMenu.bind(this), { once: true });
+    }, 10);
+  },
+
+  // Hide context menu
+  hideContextMenu() {
+    if (this.contextMenu) {
+      this.contextMenu.remove();
+      this.contextMenu = null;
     }
   }
 };

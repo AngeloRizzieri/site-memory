@@ -1,3 +1,4 @@
+/* Highlight marks */
 .site-memory-highlight {
   background-color: rgba(255, 230, 0, 0.4);
   border-radius: 2px;
@@ -23,4 +24,134 @@
     background-color: rgba(255, 230, 0, 0.4);
     box-shadow: none;
   }
+}
+
+/* Save Note Modal */
+.site-memory-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2147483647;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.site-memory-modal {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  width: 400px;
+  max-width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.site-memory-modal h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  color: #1a1a1a;
+}
+
+.site-memory-modal-text {
+  background: #f5f5f5;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: #333;
+  max-height: 100px;
+  overflow-y: auto;
+  border-left: 4px solid #40c4ac;
+}
+
+.site-memory-modal textarea {
+  width: 100%;
+  height: 80px;
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  resize: vertical;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.site-memory-modal textarea:focus {
+  outline: none;
+  border-color: #40c4ac;
+}
+
+.site-memory-modal-buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  justify-content: flex-end;
+}
+
+.site-memory-modal-buttons button {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.site-memory-btn-cancel {
+  background: #f0f0f0;
+  border: none;
+  color: #666;
+}
+
+.site-memory-btn-cancel:hover {
+  background: #e0e0e0;
+}
+
+.site-memory-btn-save {
+  background: #40c4ac;
+  border: none;
+  color: white;
+}
+
+.site-memory-btn-save:hover {
+  background: #35a08c;
+}
+
+/* Context Menu for Highlights */
+.site-memory-context-menu {
+  position: fixed;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  z-index: 2147483647;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.site-memory-context-menu button {
+  display: block;
+  width: 100%;
+  padding: 12px 20px;
+  border: none;
+  background: white;
+  text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+  color: #333;
+}
+
+.site-memory-context-menu button:hover {
+  background: #f5f5f5;
+}
+
+.site-memory-context-menu button.delete {
+  color: #e53935;
+}
+
+.site-memory-context-menu button.delete:hover {
+  background: #ffebee;
 }
