@@ -1,0 +1,47 @@
+{
+  "manifest_version": 3,
+  "name": "Site Memory",
+  "version": "1.0.0",
+  "description": "Save text highlights and automatically recall them when revisiting sites",
+  
+  "permissions": [
+    "storage",
+    "contextMenus",
+    "activeTab"
+  ],
+  
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  
+  "background": {
+    "service_worker": "src/background/service-worker.js",
+    "type": "module"
+  },
+  
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": [
+        "src/utils/messaging.js",
+        "src/utils/hostname-utils.js",
+        "src/storage/data-models.js",
+        "src/storage/storage-manager.js",
+        "src/utils/dom-utils.js",
+        "src/content/selection-handler.js",
+        "src/ui/highlight-renderer.js",
+        "src/content/content-script.js"
+      ],
+      "css": [
+        "src/ui/styles/highlights.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  
+  "icons": {
+    "16": "assets/icons/icon16.png",
+    "48": "assets/icons/icon48.png",
+    "128": "assets/icons/icon128.png"
+  }
+}

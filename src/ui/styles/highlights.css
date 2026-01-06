@@ -1,0 +1,26 @@
+.site-memory-highlight {
+  background-color: rgba(255, 230, 0, 0.4);
+  border-radius: 2px;
+  padding: 0 2px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.site-memory-highlight:hover {
+  background-color: rgba(255, 230, 0, 0.7);
+}
+
+.site-memory-flash {
+  animation: site-memory-pulse 1.5s ease-out;
+}
+
+@keyframes site-memory-pulse {
+  0% {
+    background-color: rgba(255, 150, 0, 0.8);
+    box-shadow: 0 0 10px rgba(255, 150, 0, 0.6);
+  }
+  100% {
+    background-color: rgba(255, 230, 0, 0.4);
+    box-shadow: none;
+  }
+}
