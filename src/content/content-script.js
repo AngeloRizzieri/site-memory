@@ -14,6 +14,11 @@
         sendResponse({ success: true });
         return false;
 
+      case MESSAGE_TYPES.CONTEXT_MENU_SAVE_IMAGE:
+        SelectionHandler.showSaveImageModal(message.imageUrl);
+        sendResponse({ success: true });
+        return false;
+
       case MESSAGE_TYPES.GET_HIGHLIGHTS:
         StorageManager.getHighlightsByHostname(getCurrentHostname())
           .then(highlights => {

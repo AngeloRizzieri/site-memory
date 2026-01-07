@@ -1,7 +1,7 @@
 const SelectionHandler = {
   currentSelection: null,
+  currentImage: null,
 
-  // Get current text selection data
   getSelectionData() {
     const selection = window.getSelection();
     
@@ -26,13 +26,11 @@ const SelectionHandler = {
     return this.currentSelection;
   },
 
-  // Clear current selection
   clearSelection() {
     this.currentSelection = null;
     window.getSelection()?.removeAllRanges();
   },
 
-  // Show modal to add note before saving
   showSaveModal() {
     const selectionData = this.getSelectionData();
     
@@ -41,7 +39,6 @@ const SelectionHandler = {
       return;
     }
 
-    // Create modal overlay
     const overlay = document.createElement('div');
     overlay.className = 'site-memory-modal-overlay';
     overlay.innerHTML = `
@@ -58,30 +55,25 @@ const SelectionHandler = {
 
     document.body.appendChild(overlay);
 
-    // Focus textarea
     const textarea = overlay.querySelector('textarea');
     textarea.focus();
 
-    // Handle cancel
     overlay.querySelector('.site-memory-btn-cancel').addEventListener('click', () => {
       overlay.remove();
     });
 
-    // Handle click outside
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) {
         overlay.remove();
       }
     });
 
-    // Handle save
     overlay.querySelector('.site-memory-btn-save').addEventListener('click', async () => {
       const note = textarea.value.trim();
       await this.saveCurrentSelection(note);
       overlay.remove();
     });
 
-    // Handle Enter to save (Shift+Enter for newline)
     textarea.addEventListener('keydown', async (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -95,7 +87,66 @@ const SelectionHandler = {
     });
   },
 
-  // Save the current selection
+  showSaveImageModal(imageUrl) {
+    this.currentImage = {
+      imageUrl,
+      hostname: getCurrentHostname(),
+      url: window.location.href
+    };
+
+    const overlay = document.createElement('div');
+    overlay.className = 'site-memory-modal-overlay';
+    overlay.innerHTML = `
+      <div class="site-memory-modal">
+        <h3>🖼️ Save Image</h3>
+        <div class="site-memory-modal-image">
+          <img src="${this.escapeHtml(imageUrl)}" alt="Image to save" />
+        </div>
+        <textarea placeholder="Add a note (optional)..." id="site-memory-note-input"></textarea>
+        <div class="site-memory-modal-buttons">
+          <button class="site-memory-btn-cancel">Cancel</button>
+          <button class="site-memory-btn-save">Save Image</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const textarea = overlay.querySelector('textarea');
+    textarea.focus();
+
+    overlay.querySelector('.site-memory-btn-cancel').addEventListener('click', () => {
+      this.currentImage = null;
+      overlay.remove();
+    });
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        this.currentImage = null;
+        overlay.remove();
+      }
+    });
+
+    overlay.querySelector('.site-memory-btn-save').addEventListener('click', async () => {
+      const note = textarea.value.trim();
+      await this.saveCurrentImage(note);
+      overlay.remove();
+    });
+
+    textarea.addEventListener('keydown', async (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        const note = textarea.value.trim();
+        await this.saveCurrentImage(note);
+        overlay.remove();
+      }
+      if (e.key === 'Escape') {
+        this.currentImage = null;
+        overlay.remove();
+      }
+    });
+  },
+
   async saveCurrentSelection(note = '') {
     // Use the cached selection data, not a fresh call
     if (!this.currentSelection) {
@@ -105,6 +156,7 @@ const SelectionHandler = {
     
     const highlight = createHighlight({
       ...this.currentSelection,
+      type: 'text',
       note
     });
     
@@ -113,7 +165,6 @@ const SelectionHandler = {
     if (result.success) {
       HighlightRenderer.renderHighlight(highlight);
       this.clearSelection();
-      // Refresh sidebar if open
       if (window.Sidebar) {
         Sidebar.refresh();
       }
@@ -122,7 +173,30 @@ const SelectionHandler = {
     return result;
   },
 
-  // Escape HTML
+  async saveCurrentImage(note = '') {
+    if (!this.currentImage) {
+      console.log('[Site Memory] No image to save');
+      return null;
+    }
+    
+    const highlight = createHighlight({
+      ...this.currentImage,
+      type: 'image',
+      note
+    });
+    
+    const result = await StorageManager.saveHighlight(highlight);
+    
+    if (result.success) {
+      this.currentImage = null;
+      if (window.Sidebar) {
+        Sidebar.refresh();
+      }
+    }
+    
+    return result;
+  },
+
   escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
@@ -130,5 +204,4 @@ const SelectionHandler = {
   }
 };
 
-// Make available globally
 window.SelectionHandler = SelectionHandler;

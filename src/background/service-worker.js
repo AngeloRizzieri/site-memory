@@ -6,6 +6,7 @@ const MESSAGE_TYPES = {
   HIGHLIGHT_SAVED: 'HIGHLIGHT_SAVED',
   HIGHLIGHTS_RETRIEVED: 'HIGHLIGHTS_RETRIEVED',
   CONTEXT_MENU_SAVE: 'CONTEXT_MENU_SAVE',
+  CONTEXT_MENU_SAVE_IMAGE: 'CONTEXT_MENU_SAVE_IMAGE',
   UPDATE_NOTE: 'UPDATE_NOTE',
   TOGGLE_PIN: 'TOGGLE_PIN'
 };
@@ -18,7 +19,13 @@ chrome.runtime.onInstalled.addListener(() => {
     contexts: ['selection']
   });
   
-  console.log('[Site Memory] Extension installed, context menu created');
+  chrome.contextMenus.create({
+    id: 'save-image',
+    title: 'Save Image to Site Memory',
+    contexts: ['image']
+  });
+  
+  console.log('[Site Memory] Extension installed, context menus created');
 });
 
 // Handle context menu clicks
@@ -27,7 +34,6 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     console.log('[Site Memory] Context menu clicked, saving highlight');
     
     try {
-      // Send message to content script to save selection
       const response = await chrome.tabs.sendMessage(tab.id, {
         type: MESSAGE_TYPES.CONTEXT_MENU_SAVE
       });
@@ -37,14 +43,26 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       console.error('[Site Memory] Error saving highlight:', error);
     }
   }
+  
+  if (info.menuItemId === 'save-image') {
+    console.log('[Site Memory] Context menu clicked, saving image:', info.srcUrl);
+    
+    try {
+      const response = await chrome.tabs.sendMessage(tab.id, {
+        type: MESSAGE_TYPES.CONTEXT_MENU_SAVE_IMAGE,
+        imageUrl: info.srcUrl
+      });
+      
+      console.log('[Site Memory] Save image response:', response);
+    } catch (error) {
+      console.error('[Site Memory] Error saving image:', error);
+    }
+  }
 });
 
 // Handle messages from content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('[Site Memory] Background received:', message.type);
-  
-  // Handle any background-specific messages here
-  // Currently, storage operations happen in content script
   
   return false;
 });

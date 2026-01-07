@@ -1,131 +1,230 @@
 const DOMUtils = {
-  // Get XPath for a node
-  getXPath(node) {
-    if (!node) return '';
+  // Get context around a range - more context for better matching
+  getContext(range, charCount = 80) {
+    let contextBefore = '';
+    let contextAfter = '';
     
-    if (node.nodeType === Node.TEXT_NODE) {
-      node = node.parentNode;
-    }
-    
-    const parts = [];
-    while (node && node.nodeType === Node.ELEMENT_NODE) {
-      let index = 1;
-      let sibling = node.previousSibling;
+    try {
+      // Walk backwards to get context before
+      const startContainer = range.startContainer;
+      const startOffset = range.startOffset;
       
-      while (sibling) {
-        if (sibling.nodeType === Node.ELEMENT_NODE && 
-            sibling.nodeName === node.nodeName) {
-          index++;
+      if (startContainer.nodeType === Node.TEXT_NODE) {
+        const textBefore = startContainer.textContent.substring(0, startOffset);
+        contextBefore = textBefore.slice(-charCount);
+        
+        // If we need more context, look at previous nodes
+        if (contextBefore.length < charCount) {
+          let prevText = this.getPreviousText(startContainer, charCount - contextBefore.length);
+          contextBefore = prevText + contextBefore;
         }
-        sibling = sibling.previousSibling;
       }
       
-      const tagName = node.nodeName.toLowerCase();
-      parts.unshift(`${tagName}[${index}]`);
-      node = node.parentNode;
-    }
-    
-    return '/' + parts.join('/');
-  },
-
-  // Get node from XPath
-  getNodeFromXPath(xpath) {
-    try {
-      const result = document.evaluate(
-        xpath,
-        document,
-        null,
-        XPathResult.FIRST_ORDERED_NODE_TYPE,
-        null
-      );
-      return result.singleNodeValue;
+      // Walk forwards to get context after
+      const endContainer = range.endContainer;
+      const endOffset = range.endOffset;
+      
+      if (endContainer.nodeType === Node.TEXT_NODE) {
+        const textAfter = endContainer.textContent.substring(endOffset);
+        contextAfter = textAfter.slice(0, charCount);
+        
+        // If we need more context, look at next nodes
+        if (contextAfter.length < charCount) {
+          let nextText = this.getNextText(endContainer, charCount - contextAfter.length);
+          contextAfter = contextAfter + nextText;
+        }
+      }
     } catch (e) {
-      console.error('[Site Memory] XPath error:', e);
-      return null;
+      console.log('[Site Memory] Context extraction fallback');
     }
-  },
-
-  // Get context around a range
-  getContext(range, charCount = 50) {
-    const text = range.toString();
-    const container = range.commonAncestorContainer;
-    const fullText = container.textContent || '';
-    const index = fullText.indexOf(text);
     
     return {
-      contextBefore: fullText.substring(Math.max(0, index - charCount), index),
-      contextAfter: fullText.substring(index + text.length, index + text.length + charCount)
+      contextBefore: contextBefore.slice(-charCount),
+      contextAfter: contextAfter.slice(0, charCount)
     };
   },
 
-  // Serialize a range for storage
+  // Get text from previous sibling/parent nodes
+  getPreviousText(node, maxLength) {
+    let text = '';
+    let current = node;
+    
+    while (text.length < maxLength && current) {
+      if (current.previousSibling) {
+        current = current.previousSibling;
+        const nodeText = current.textContent || '';
+        text = nodeText.slice(-maxLength) + text;
+      } else if (current.parentNode && current.parentNode !== document.body) {
+        current = current.parentNode;
+      } else {
+        break;
+      }
+    }
+    
+    return text.slice(-maxLength);
+  },
+
+  // Get text from next sibling/parent nodes
+  getNextText(node, maxLength) {
+    let text = '';
+    let current = node;
+    
+    while (text.length < maxLength && current) {
+      if (current.nextSibling) {
+        current = current.nextSibling;
+        const nodeText = current.textContent || '';
+        text = text + nodeText.slice(0, maxLength);
+      } else if (current.parentNode && current.parentNode !== document.body) {
+        current = current.parentNode;
+      } else {
+        break;
+      }
+    }
+    
+    return text.slice(0, maxLength);
+  },
+
+  // Serialize a range for storage - now primarily text-based
   serializeRange(range) {
     const context = this.getContext(range);
+    const text = range.toString();
     
     return {
-      startXPath: this.getXPath(range.startContainer),
-      startOffset: range.startOffset,
-      endXPath: this.getXPath(range.endContainer),
-      endOffset: range.endOffset,
-      ...context
+      text: text,
+      ...context,
+      // Keep xpath as fallback but don't rely on it
+      startXPath: '',
+      startOffset: 0,
+      endXPath: '',
+      endOffset: 0
     };
   },
 
-  // Reconstruct a range from serialized data
+  // Find text in the document and create a range
   deserializeRange(position) {
     try {
-      const startNode = this.getNodeFromXPath(position.startXPath);
-      const endNode = this.getNodeFromXPath(position.endXPath);
+      const searchText = position.text;
+      if (!searchText) return null;
       
-      if (!startNode || !endNode) return null;
+      // Build the full search string with context
+      const contextBefore = position.contextBefore || '';
+      const contextAfter = position.contextAfter || '';
       
-      // Find text nodes
-      const startTextNode = this.findTextNode(startNode, position.startOffset);
-      const endTextNode = this.findTextNode(endNode, position.endOffset);
+      // Use TreeWalker to find text nodes
+      const walker = document.createTreeWalker(
+        document.body,
+        NodeFilter.SHOW_TEXT,
+        null,
+        false
+      );
       
-      if (!startTextNode || !endTextNode) return null;
+      // Collect all text nodes with their positions
+      const textNodes = [];
+      let node;
+      while (node = walker.nextNode()) {
+        if (node.textContent.trim()) {
+          textNodes.push(node);
+        }
+      }
       
+      // Build a map of cumulative text
+      let fullText = '';
+      const nodeMap = []; // {node, start, end}
+      
+      for (const textNode of textNodes) {
+        const start = fullText.length;
+        fullText += textNode.textContent;
+        nodeMap.push({
+          node: textNode,
+          start: start,
+          end: fullText.length
+        });
+      }
+      
+      // Search for the text with context
+      let searchIndex = -1;
+      
+      // Try with full context first
+      if (contextBefore && contextAfter) {
+        const fullSearch = contextBefore + searchText + contextAfter;
+        const idx = fullText.indexOf(fullSearch);
+        if (idx !== -1) {
+          searchIndex = idx + contextBefore.length;
+        }
+      }
+      
+      // Try with just before context
+      if (searchIndex === -1 && contextBefore) {
+        const searchWithBefore = contextBefore.slice(-30) + searchText;
+        const idx = fullText.indexOf(searchWithBefore);
+        if (idx !== -1) {
+          searchIndex = idx + Math.min(contextBefore.length, 30);
+        }
+      }
+      
+      // Try with just after context
+      if (searchIndex === -1 && contextAfter) {
+        const searchWithAfter = searchText + contextAfter.slice(0, 30);
+        const idx = fullText.indexOf(searchWithAfter);
+        if (idx !== -1) {
+          searchIndex = idx;
+        }
+      }
+      
+      // Fall back to just the text (first occurrence)
+      if (searchIndex === -1) {
+        searchIndex = fullText.indexOf(searchText);
+      }
+      
+      if (searchIndex === -1) {
+        console.log('[Site Memory] Could not find text:', searchText.substring(0, 50));
+        return null;
+      }
+      
+      // Find the start and end nodes
+      const startPos = searchIndex;
+      const endPos = searchIndex + searchText.length;
+      
+      let startNode = null, startOffset = 0;
+      let endNode = null, endOffset = 0;
+      
+      for (const mapping of nodeMap) {
+        // Find start node
+        if (!startNode && mapping.start <= startPos && mapping.end > startPos) {
+          startNode = mapping.node;
+          startOffset = startPos - mapping.start;
+        }
+        
+        // Find end node
+        if (mapping.start < endPos && mapping.end >= endPos) {
+          endNode = mapping.node;
+          endOffset = endPos - mapping.start;
+        }
+        
+        if (startNode && endNode) break;
+      }
+      
+      if (!startNode || !endNode) {
+        console.log('[Site Memory] Could not map to DOM nodes');
+        return null;
+      }
+      
+      // Create and return the range
       const range = document.createRange();
-      range.setStart(startTextNode.node, startTextNode.offset);
-      range.setEnd(endTextNode.node, endTextNode.offset);
+      range.setStart(startNode, startOffset);
+      range.setEnd(endNode, endOffset);
+      
+      // Verify the range text matches
+      const rangeText = range.toString();
+      if (rangeText !== searchText) {
+        console.log('[Site Memory] Range text mismatch, but proceeding');
+      }
       
       return range;
     } catch (e) {
       console.error('[Site Memory] Deserialize error:', e);
       return null;
     }
-  },
-
-  // Find text node within an element
-  findTextNode(element, targetOffset) {
-    const walker = document.createTreeWalker(
-      element,
-      NodeFilter.SHOW_TEXT,
-      null,
-      false
-    );
-    
-    let currentOffset = 0;
-    let node;
-    
-    while (node = walker.nextNode()) {
-      const nodeLength = node.textContent.length;
-      if (currentOffset + nodeLength >= targetOffset) {
-        return {
-          node: node,
-          offset: Math.min(targetOffset - currentOffset, nodeLength)
-        };
-      }
-      currentOffset += nodeLength;
-    }
-    
-    // Fallback: return first text node
-    const firstText = element.querySelector('*')?.firstChild || element.firstChild;
-    if (firstText && firstText.nodeType === Node.TEXT_NODE) {
-      return { node: firstText, offset: 0 };
-    }
-    
-    return null;
   },
 
   // Scroll element into view smoothly

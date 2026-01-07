@@ -110,12 +110,20 @@ const Sidebar = {
       ? `<div class="site-memory-card-note">"${this.escapeHtml(highlight.note)}"</div>` 
       : '';
 
+    // Handle image vs text highlights
+    let contentHtml;
+    if (highlight.type === 'image') {
+      contentHtml = `<div class="site-memory-card-image"><img src="${this.escapeHtml(highlight.imageUrl)}" alt="Saved image" /></div>`;
+    } else {
+      contentHtml = `<div class="site-memory-card-text">${this.escapeHtml(highlight.text)}</div>`;
+    }
+
     return `
-      <div class="site-memory-card" data-id="${highlight.id}">
-        <div class="site-memory-card-text">${this.escapeHtml(highlight.text)}</div>
+      <div class="site-memory-card" data-id="${highlight.id}" data-type="${highlight.type || 'text'}">
+        ${contentHtml}
         ${noteHtml}
         <div class="site-memory-card-meta">
-          <span>${timeAgo}</span>
+          <span>${highlight.type === 'image' ? '🖼️' : '📝'} ${timeAgo}</span>
           <button class="site-memory-card-delete" data-id="${highlight.id}">🗑️ Delete</button>
         </div>
       </div>
