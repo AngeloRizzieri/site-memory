@@ -1,25 +1,132 @@
+/* Toggle Button - Small circular button */
+.site-memory-toggle-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #40c4ac;
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  z-index: 2147483645;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+  transition: all 0.2s ease;
+}
+
+.site-memory-toggle-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.site-memory-toggle-icon {
+  font-size: 20px;
+}
+
+.site-memory-toggle-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #e53935;
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+.site-memory-toggle-btn.has-highlights {
+  opacity: 0.85;
+}
+
+/* Sidebar */
 .site-memory-sidebar {
   position: fixed;
   top: 0;
   right: 0;
-  width: 350px;
+  width: 300px;
   height: 100%;
   background: #ffffff;
-  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+  box-shadow: -2px 0 16px rgba(0, 0, 0, 0.1);
   z-index: 2147483646;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   display: flex;
   flex-direction: column;
   transform: translateX(100%);
-  transition: transform 0.3s ease;
+  transition: transform 0.25s ease;
 }
 
 .site-memory-sidebar.open {
   transform: translateX(0);
 }
 
+/* Dark Mode */
+.site-memory-sidebar.dark-mode {
+  background: #1a1a2e;
+  color: #e0e0e0;
+}
+
+.site-memory-sidebar.dark-mode .site-memory-sidebar-header {
+  background: #16213e;
+}
+
+.site-memory-sidebar.dark-mode .site-memory-search-input {
+  background: #16213e;
+  border-color: #2a2a4a;
+  color: #e0e0e0;
+}
+
+.site-memory-sidebar.dark-mode .site-memory-search-input::placeholder {
+  color: #888;
+}
+
+.site-memory-sidebar.dark-mode .site-memory-stats {
+  background: #16213e;
+  border-color: #2a2a4a;
+  color: #aaa;
+}
+
+.site-memory-sidebar.dark-mode .site-memory-card {
+  background: #16213e;
+  border-left-color: #40c4ac;
+}
+
+.site-memory-sidebar.dark-mode .site-memory-card:hover {
+  background: #1f2847;
+}
+
+.site-memory-sidebar.dark-mode .site-memory-card-text {
+  color: #e0e0e0;
+}
+
+.site-memory-sidebar.dark-mode .site-memory-card-note {
+  background: #1a1a2e;
+  color: #aaa;
+}
+
+.site-memory-sidebar.dark-mode .site-memory-card-meta {
+  color: #777;
+}
+
+.site-memory-sidebar.dark-mode .site-memory-empty {
+  color: #777;
+}
+
+/* Header */
 .site-memory-sidebar-header {
-  padding: 20px;
+  padding: 14px 16px;
   background: #40c4ac;
   color: white;
   display: flex;
@@ -29,155 +136,176 @@
 
 .site-memory-sidebar-header h2 {
   margin: 0;
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 600;
 }
 
-.site-memory-close-btn {
+.site-memory-header-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.site-memory-header-actions button {
   background: rgba(255, 255, 255, 0.2);
   border: none;
   color: white;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 20px;
+  font-size: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: background 0.2s;
 }
 
-.site-memory-close-btn:hover {
+.site-memory-header-actions button:hover {
   background: rgba(255, 255, 255, 0.3);
 }
 
+/* Search */
+.site-memory-search {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.site-memory-sidebar.dark-mode .site-memory-search {
+  border-color: #2a2a4a;
+}
+
+.site-memory-search-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.site-memory-search-input:focus {
+  border-color: #40c4ac;
+}
+
+/* Stats */
 .site-memory-stats {
-  padding: 12px 20px;
+  padding: 10px 14px;
   background: #f8f9fa;
   border-bottom: 1px solid #e9ecef;
-  font-size: 13px;
+  font-size: 12px;
   color: #666;
 }
 
+/* List */
 .site-memory-list {
   flex: 1;
   overflow-y: auto;
-  padding: 12px;
+  padding: 10px;
 }
 
+/* Empty State */
 .site-memory-empty {
   text-align: center;
-  padding: 40px 20px;
+  padding: 30px 16px;
   color: #999;
 }
 
 .site-memory-empty-icon {
-  font-size: 48px;
-  margin-bottom: 12px;
+  font-size: 36px;
+  margin-bottom: 10px;
 }
 
+.site-memory-empty p {
+  margin: 4px 0;
+  font-size: 13px;
+}
+
+.site-memory-hint {
+  font-size: 12px !important;
+  color: #aaa;
+  margin-top: 8px !important;
+}
+
+/* Cards */
 .site-memory-card {
   background: #f8f9fa;
-  border-radius: 10px;
-  padding: 16px;
-  margin-bottom: 12px;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
   cursor: pointer;
-  transition: all 0.2s;
-  border-left: 4px solid #40c4ac;
+  transition: all 0.15s;
+  border-left: 3px solid #40c4ac;
 }
 
 .site-memory-card:hover {
   background: #f0f0f0;
-  transform: translateX(-4px);
+  transform: translateX(-2px);
 }
 
 .site-memory-card-text {
-  font-size: 14px;
+  font-size: 13px;
   color: #333;
-  line-height: 1.5;
-  margin-bottom: 8px;
-  max-height: 63px;
+  line-height: 1.4;
+  margin-bottom: 6px;
+  max-height: 54px;
   overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
 }
 
 .site-memory-card-image {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   text-align: center;
 }
 
 .site-memory-card-image img {
   max-width: 100%;
-  max-height: 150px;
-  border-radius: 6px;
+  max-height: 100px;
+  border-radius: 4px;
   object-fit: contain;
 }
 
 .site-memory-card-note {
-  font-size: 13px;
+  font-size: 12px;
   color: #666;
   font-style: italic;
-  padding: 8px;
+  padding: 6px 8px;
   background: #fff;
-  border-radius: 6px;
-  margin-bottom: 8px;
+  border-radius: 4px;
+  margin-bottom: 6px;
 }
 
 .site-memory-card-meta {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 12px;
+  font-size: 11px;
   color: #999;
 }
 
-.site-memory-card-delete {
+.site-memory-card-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.site-memory-card-actions button {
   background: none;
   border: none;
-  color: #999;
   cursor: pointer;
-  padding: 4px 8px;
+  padding: 4px 6px;
   border-radius: 4px;
   font-size: 12px;
+  opacity: 0.6;
+  transition: all 0.15s;
+}
+
+.site-memory-card-actions button:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .site-memory-card-delete:hover {
-  background: #ffebee;
-  color: #e53935;
-}
-
-.site-memory-toggle-btn {
-  position: fixed;
-  top: 50%;
-  right: 0;
-  transform: translateY(-50%);
-  background: #40c4ac;
-  color: white;
-  border: none;
-  padding: 16px 8px;
-  border-radius: 8px 0 0 8px;
-  cursor: pointer;
-  font-size: 14px;
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
-  z-index: 2147483645;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-weight: 500;
-}
-
-.site-memory-toggle-btn:hover {
-  background: #35a08c;
-}
-
-.site-memory-toggle-btn.has-highlights {
-  animation: site-memory-glow 2s ease-in-out infinite;
-}
-
-@keyframes site-memory-glow {
-  0%, 100% {
-    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
-  }
-  50% {
-    box-shadow: -2px 0 20px rgba(64, 196, 172, 0.5);
-  }
+  background: #ffebee !important;
 }

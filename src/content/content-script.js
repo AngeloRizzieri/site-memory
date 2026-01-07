@@ -42,12 +42,5 @@
     }
   });
 
-  document.addEventListener('keydown', (e) => {
-    if (e.ctrlKey && e.shiftKey && e.key === 'S') {
-      e.preventDefault();
-      Sidebar.toggle();
-    }
-  });
-
-  console.log('[Site Memory] Ready - Press Ctrl+Shift+S to open sidebar');
+  console.log('[Site Memory] Ready - Ctrl+Shift+S: sidebar | Ctrl+Shift+H: quick save');
 })();
