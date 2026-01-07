@@ -83,7 +83,7 @@ const HighlightRenderer = {
     const menu = document.createElement('div');
     menu.className = 'site-memory-context-menu';
     menu.innerHTML = `
-      ${note ? `<button class="view-note">📝 View Note</button>` : ''}
+      <button class="edit-note">✏️ ${note ? 'Edit' : 'Add'} Note</button>
       <button class="scroll-to">🎯 Scroll to Highlight</button>
       <button class="delete">🗑️ Delete Highlight</button>
     `;
@@ -91,12 +91,10 @@ const HighlightRenderer = {
     menu.style.left = `${x}px`;
     menu.style.top = `${y}px`;
 
-    if (note) {
-      menu.querySelector('.view-note').addEventListener('click', () => {
-        this.showNoteModal(note);
-        this.hideContextMenu();
-      });
-    }
+    menu.querySelector('.edit-note').addEventListener('click', () => {
+      this.showEditNoteModal(highlightId, note);
+      this.hideContextMenu();
+    });
 
     menu.querySelector('.scroll-to').addEventListener('click', () => {
       this.scrollToHighlight(highlightId);
@@ -119,6 +117,62 @@ const HighlightRenderer = {
     setTimeout(() => {
       document.addEventListener('click', this.hideContextMenu.bind(this), { once: true });
     }, 10);
+  },
+
+  showEditNoteModal(highlightId, currentNote) {
+    const overlay = document.createElement('div');
+    overlay.className = 'site-memory-modal-overlay';
+    overlay.innerHTML = `
+      <div class="site-memory-modal">
+        <h3>✏️ ${currentNote ? 'Edit' : 'Add'} Note</h3>
+        <textarea placeholder="Add a note..." id="site-memory-edit-note">${this.escapeHtml(currentNote || '')}</textarea>
+        <div class="site-memory-modal-buttons">
+          <button class="site-memory-btn-cancel">Cancel</button>
+          <button class="site-memory-btn-save">Save</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const textarea = overlay.querySelector('textarea');
+    textarea.focus();
+    textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+
+    const closeModal = () => overlay.remove();
+
+    const saveNote = async () => {
+      const newNote = textarea.value.trim();
+      const hostname = getCurrentHostname();
+      await StorageManager.updateNote(hostname, highlightId, newNote);
+      
+      // Update the DOM element's data attribute
+      const element = document.querySelector(`[data-highlight-id="${highlightId}"]`);
+      if (element) {
+        element.dataset.note = newNote;
+        element.title = newNote || 'Click for options';
+      }
+      
+      if (window.Sidebar) {
+        Sidebar.refresh();
+      }
+      closeModal();
+    };
+
+    overlay.querySelector('.site-memory-btn-cancel').addEventListener('click', closeModal);
+    overlay.querySelector('.site-memory-btn-save').addEventListener('click', saveNote);
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) closeModal();
+    });
+    textarea.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        saveNote();
+      }
+      if (e.key === 'Escape') {
+        closeModal();
+      }
+    });
   },
 
   showNoteModal(note) {

@@ -63,6 +63,29 @@ const StorageManager = {
     }
   },
 
+  // Update a highlight's note
+  async updateNote(hostname, highlightId, newNote) {
+    const key = this.getKey(hostname);
+    
+    try {
+      const result = await chrome.storage.local.get(key);
+      let highlights = result[key] || [];
+      
+      const highlight = highlights.find(h => h.id === highlightId);
+      if (highlight) {
+        highlight.note = newNote;
+        await chrome.storage.local.set({ [key]: highlights });
+        console.log('[Site Memory] Note updated:', highlightId);
+        return { success: true };
+      }
+      
+      return { success: false, error: 'Highlight not found' };
+    } catch (error) {
+      console.error('[Site Memory] Update note error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
   // Get all hostnames that have saved highlights
   async getAllHostnames() {
     try {
