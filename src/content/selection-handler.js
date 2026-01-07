@@ -1,7 +1,6 @@
 const SelectionHandler = {
   currentSelection: null,
 
-  // Get current text selection data
   getSelectionData() {
     const selection = window.getSelection();
     
@@ -26,13 +25,11 @@ const SelectionHandler = {
     return this.currentSelection;
   },
 
-  // Clear current selection
   clearSelection() {
     this.currentSelection = null;
     window.getSelection()?.removeAllRanges();
   },
 
-  // Show modal to add note before saving
   showSaveModal() {
     const selectionData = this.getSelectionData();
     
@@ -41,7 +38,6 @@ const SelectionHandler = {
       return;
     }
 
-    // Create modal overlay
     const overlay = document.createElement('div');
     overlay.className = 'site-memory-modal-overlay';
     overlay.innerHTML = `
@@ -58,30 +54,25 @@ const SelectionHandler = {
 
     document.body.appendChild(overlay);
 
-    // Focus textarea
     const textarea = overlay.querySelector('textarea');
     textarea.focus();
 
-    // Handle cancel
     overlay.querySelector('.site-memory-btn-cancel').addEventListener('click', () => {
       overlay.remove();
     });
 
-    // Handle click outside
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) {
         overlay.remove();
       }
     });
 
-    // Handle save
     overlay.querySelector('.site-memory-btn-save').addEventListener('click', async () => {
       const note = textarea.value.trim();
       await this.saveCurrentSelection(note);
       overlay.remove();
     });
 
-    // Handle Enter to save (Shift+Enter for newline)
     textarea.addEventListener('keydown', async (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -95,7 +86,6 @@ const SelectionHandler = {
     });
   },
 
-  // Save the current selection
   async saveCurrentSelection(note = '') {
     const selectionData = this.getSelectionData();
     
@@ -114,7 +104,6 @@ const SelectionHandler = {
     if (result.success) {
       HighlightRenderer.renderHighlight(highlight);
       this.clearSelection();
-      // Refresh sidebar if open
       if (window.Sidebar) {
         Sidebar.refresh();
       }
@@ -123,7 +112,6 @@ const SelectionHandler = {
     return result;
   },
 
-  // Escape HTML
   escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
@@ -131,5 +119,4 @@ const SelectionHandler = {
   }
 };
 
-// Make available globally
 window.SelectionHandler = SelectionHandler;

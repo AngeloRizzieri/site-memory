@@ -2,14 +2,12 @@ const Sidebar = {
   sidebar: null,
   isOpen: false,
 
-  // Initialize sidebar
   init() {
     this.createToggleButton();
     this.createSidebar();
     this.checkForHighlights();
   },
 
-  // Create the toggle button on the right side
   createToggleButton() {
     const btn = document.createElement('button');
     btn.className = 'site-memory-toggle-btn';
@@ -19,7 +17,6 @@ const Sidebar = {
     this.toggleBtn = btn;
   },
 
-  // Create the sidebar element
   createSidebar() {
     const sidebar = document.createElement('div');
     sidebar.className = 'site-memory-sidebar';
@@ -38,7 +35,6 @@ const Sidebar = {
     this.sidebar = sidebar;
   },
 
-  // Check if current site has highlights
   async checkForHighlights() {
     const highlights = await StorageManager.getHighlightsByHostname(getCurrentHostname());
     if (highlights.length > 0) {
@@ -48,7 +44,6 @@ const Sidebar = {
     }
   },
 
-  // Toggle sidebar open/close
   toggle() {
     if (this.isOpen) {
       this.close();
@@ -57,29 +52,24 @@ const Sidebar = {
     }
   },
 
-  // Open sidebar and load highlights
   async open() {
     this.isOpen = true;
     this.sidebar.classList.add('open');
     await this.loadHighlights();
   },
 
-  // Close sidebar
   close() {
     this.isOpen = false;
     this.sidebar.classList.remove('open');
   },
 
-  // Load and render highlights in sidebar
   async loadHighlights() {
     const hostname = getCurrentHostname();
     const highlights = await StorageManager.getHighlightsByHostname(hostname);
     
-    // Update stats
     const statsEl = this.sidebar.querySelector('.site-memory-stats');
     statsEl.textContent = `${highlights.length} highlight${highlights.length !== 1 ? 's' : ''} on ${hostname}`;
 
-    // Render list
     const listEl = this.sidebar.querySelector('.site-memory-list');
     
     if (highlights.length === 0) {
@@ -95,7 +85,6 @@ const Sidebar = {
 
     listEl.innerHTML = highlights.map(h => this.renderCard(h)).join('');
 
-    // Add click handlers
     listEl.querySelectorAll('.site-memory-card').forEach(card => {
       card.addEventListener('click', (e) => {
         if (!e.target.classList.contains('site-memory-card-delete')) {
@@ -105,7 +94,6 @@ const Sidebar = {
       });
     });
 
-    // Add delete handlers
     listEl.querySelectorAll('.site-memory-card-delete').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
@@ -115,7 +103,6 @@ const Sidebar = {
     });
   },
 
-  // Render a single highlight card
   renderCard(highlight) {
     const date = new Date(highlight.timestamp);
     const timeAgo = this.getTimeAgo(date);
@@ -135,7 +122,6 @@ const Sidebar = {
     `;
   },
 
-  // Delete a highlight
   async deleteHighlight(id) {
     const hostname = getCurrentHostname();
     await StorageManager.deleteHighlight(hostname, id);
@@ -144,7 +130,6 @@ const Sidebar = {
     await this.checkForHighlights();
   },
 
-  // Get relative time string
   getTimeAgo(date) {
     const seconds = Math.floor((new Date() - date) / 1000);
     
@@ -156,14 +141,12 @@ const Sidebar = {
     return date.toLocaleDateString();
   },
 
-  // Escape HTML to prevent XSS
   escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
   },
 
-  // Refresh the sidebar content
   async refresh() {
     if (this.isOpen) {
       await this.loadHighlights();
@@ -172,5 +155,4 @@ const Sidebar = {
   }
 };
 
-// Make available globally
 window.Sidebar = Sidebar;

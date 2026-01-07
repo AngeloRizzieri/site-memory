@@ -2,7 +2,6 @@ const HighlightRenderer = {
   highlightClass: 'site-memory-highlight',
   contextMenu: null,
 
-  // Render a single highlight on the page
   renderHighlight(highlight) {
     try {
       const range = DOMUtils.deserializeRange(highlight.position);
@@ -31,7 +30,6 @@ const HighlightRenderer = {
     }
   },
 
-  // Handle complex ranges that span multiple elements
   highlightRangeComplex(range, highlight) {
     const fragment = range.extractContents();
     const wrapper = document.createElement('mark');
@@ -43,7 +41,6 @@ const HighlightRenderer = {
     range.insertNode(wrapper);
   },
 
-  // Render all highlights for current page
   async renderAllHighlights() {
     const hostname = getCurrentHostname();
     if (!hostname) return;
@@ -60,7 +57,6 @@ const HighlightRenderer = {
     console.log(`[Site Memory] Rendered ${rendered}/${highlights.length} highlights`);
   },
 
-  // Remove a highlight from the DOM
   removeHighlight(highlightId) {
     const element = document.querySelector(`[data-highlight-id="${highlightId}"]`);
     if (element) {
@@ -72,7 +68,6 @@ const HighlightRenderer = {
     }
   },
 
-  // Scroll to a specific highlight
   scrollToHighlight(highlightId) {
     const element = document.querySelector(`[data-highlight-id="${highlightId}"]`);
     if (element) {
@@ -82,7 +77,6 @@ const HighlightRenderer = {
     }
   },
 
-  // Show context menu on highlight click
   showContextMenu(highlightId, x, y, note) {
     this.hideContextMenu();
 
@@ -97,7 +91,6 @@ const HighlightRenderer = {
     menu.style.left = `${x}px`;
     menu.style.top = `${y}px`;
 
-    // View note
     if (note) {
       menu.querySelector('.view-note').addEventListener('click', () => {
         alert(`Note: "${note}"`);
@@ -105,13 +98,11 @@ const HighlightRenderer = {
       });
     }
 
-    // Scroll to
     menu.querySelector('.scroll-to').addEventListener('click', () => {
       this.scrollToHighlight(highlightId);
       this.hideContextMenu();
     });
 
-    // Delete
     menu.querySelector('.delete').addEventListener('click', async () => {
       const hostname = getCurrentHostname();
       await StorageManager.deleteHighlight(hostname, highlightId);
@@ -125,13 +116,11 @@ const HighlightRenderer = {
     document.body.appendChild(menu);
     this.contextMenu = menu;
 
-    // Close on click outside
     setTimeout(() => {
       document.addEventListener('click', this.hideContextMenu.bind(this), { once: true });
     }, 10);
   },
 
-  // Hide context menu
   hideContextMenu() {
     if (this.contextMenu) {
       this.contextMenu.remove();
@@ -140,5 +129,4 @@ const HighlightRenderer = {
   }
 };
 
-// Make available globally
 window.HighlightRenderer = HighlightRenderer;

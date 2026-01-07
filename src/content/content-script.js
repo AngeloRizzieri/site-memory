@@ -1,20 +1,15 @@
-// Main content script entry point
 (async function initSiteMemory() {
   console.log('[Site Memory] Initializing on:', getCurrentHostname());
 
-  // Render existing highlights when page loads
   await HighlightRenderer.renderAllHighlights();
 
-  // Initialize sidebar
   Sidebar.init();
 
-  // Listen for messages from background script
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log('[Site Memory] Received message:', message.type);
 
     switch (message.type) {
       case MESSAGE_TYPES.CONTEXT_MENU_SAVE:
-        // Show the save modal with note input
         SelectionHandler.showSaveModal();
         sendResponse({ success: true });
         return false;
@@ -31,7 +26,6 @@
     }
   });
 
-  // Handle clicks on highlights - show context menu
   document.addEventListener('click', (e) => {
     const highlight = e.target.closest('.site-memory-highlight');
     if (highlight) {
@@ -43,7 +37,6 @@
     }
   });
 
-  // Keyboard shortcut: Ctrl+Shift+S to open sidebar
   document.addEventListener('keydown', (e) => {
     if (e.ctrlKey && e.shiftKey && e.key === 'S') {
       e.preventDefault();
