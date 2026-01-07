@@ -93,7 +93,7 @@ const HighlightRenderer = {
 
     if (note) {
       menu.querySelector('.view-note').addEventListener('click', () => {
-        alert(`Note: "${note}"`);
+        this.showNoteModal(note);
         this.hideContextMenu();
       });
     }
@@ -119,6 +119,41 @@ const HighlightRenderer = {
     setTimeout(() => {
       document.addEventListener('click', this.hideContextMenu.bind(this), { once: true });
     }, 10);
+  },
+
+  showNoteModal(note) {
+    const overlay = document.createElement('div');
+    overlay.className = 'site-memory-modal-overlay';
+    overlay.innerHTML = `
+      <div class="site-memory-modal site-memory-note-modal">
+        <h3>📝 Note</h3>
+        <div class="site-memory-note-content">${this.escapeHtml(note)}</div>
+        <div class="site-memory-modal-buttons">
+          <button class="site-memory-btn-save">OK</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const closeModal = () => overlay.remove();
+
+    overlay.querySelector('.site-memory-btn-save').addEventListener('click', closeModal);
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) closeModal();
+    });
+    document.addEventListener('keydown', function handler(e) {
+      if (e.key === 'Escape') {
+        closeModal();
+        document.removeEventListener('keydown', handler);
+      }
+    });
+  },
+
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   },
 
   hideContextMenu() {
