@@ -101,5 +101,5 @@ const StorageManager = {
   }
 };
 
-// Make available globally
+
 window.StorageManager = StorageManager;
