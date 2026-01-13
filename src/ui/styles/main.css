@@ -435,3 +435,113 @@
   background: rgba(250, 204, 21, 0.1);
   color: #facc15;
 }
+
+/* ========== NOTE MODAL ========== */
+.sm-note-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+.sm-note-modal.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.sm-note-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+.sm-note-dialog {
+  position: relative;
+  width: 340px;
+  background: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  transform: scale(0.95);
+  transition: transform 0.2s ease;
+}
+
+.sm-note-modal.visible .sm-note-dialog {
+  transform: scale(1);
+}
+
+.sm-note-header {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fafafa;
+  margin-bottom: 12px;
+}
+
+.sm-note-input {
+  width: 100%;
+  background: #0a0a0a;
+  border: 1px solid #27272a;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #fafafa;
+  font-size: 13px;
+  font-family: inherit;
+  line-height: 1.5;
+  resize: none;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.sm-note-input:focus {
+  border-color: #facc15;
+}
+
+.sm-note-input::placeholder {
+  color: #52525b;
+}
+
+.sm-note-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.sm-note-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sm-note-btn.cancel {
+  background: transparent;
+  border: 1px solid #27272a;
+  color: #a1a1aa;
+}
+
+.sm-note-btn.cancel:hover {
+  background: #27272a;
+  color: #fafafa;
+}
+
+.sm-note-btn.save {
+  background: #facc15;
+  border: none;
+  color: #0a0a0a;
+}
+
+.sm-note-btn.save:hover {
+  background: #fbbf24;
+}

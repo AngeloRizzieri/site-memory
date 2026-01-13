@@ -222,19 +222,9 @@ const Sidebar = {
 
     // Click highlight to edit note
     this.container.querySelectorAll('.sm-hl').forEach(el => {
-      el.addEventListener('click', async () => {
+      el.addEventListener('click', () => {
         const id = el.dataset.id;
-        const hl = Highlighter.activeHighlights.get(id);
-        
-        if (hl) {
-          const note = prompt('Edit note:', hl.data.note || '');
-          if (note !== null) {
-            hl.data.note = note;
-            if (hl.element) hl.element.dataset.hasNote = note ? 'true' : '';
-            await Storage.updateHighlight(id, { note });
-            this.refresh();
-          }
-        }
+        Highlighter.showNoteModal(id);
       });
     });
   }

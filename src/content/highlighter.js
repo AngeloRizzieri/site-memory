@@ -7,11 +7,13 @@ const Highlighter = {
   colors: ['#facc15', '#4ade80', '#60a5fa', '#f472b6', '#c084fc', '#fb923c'],
   activeHighlights: new Map(),
   popup: null,
+  noteModal: null,
   currentSelection: null,
   pendingHighlight: null,
 
   init() {
     this.createPopup();
+    this.createNoteModal();
     this.bindEvents();
     this.restoreHighlights();
   },
@@ -62,6 +64,89 @@ const Highlighter = {
       e.stopPropagation();
       this.deleteCurrentHighlight();
     });
+  },
+
+  // Create custom note modal
+  createNoteModal() {
+    this.noteModal = document.createElement('div');
+    this.noteModal.className = 'sm-note-modal';
+    this.noteModal.innerHTML = `
+      <div class="sm-note-backdrop"></div>
+      <div class="sm-note-dialog">
+        <div class="sm-note-header">Add a note</div>
+        <textarea class="sm-note-input" placeholder="Write your note here..." rows="3"></textarea>
+        <div class="sm-note-actions">
+          <button class="sm-note-btn cancel">Cancel</button>
+          <button class="sm-note-btn save">Save</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(this.noteModal);
+
+    // Close on backdrop click
+    this.noteModal.querySelector('.sm-note-backdrop').addEventListener('click', () => {
+      this.hideNoteModal();
+    });
+
+    // Cancel button
+    this.noteModal.querySelector('.sm-note-btn.cancel').addEventListener('click', () => {
+      this.hideNoteModal();
+    });
+
+    // Save button
+    this.noteModal.querySelector('.sm-note-btn.save').addEventListener('click', () => {
+      this.saveNote();
+    });
+
+    // Enter to save (Shift+Enter for new line)
+    this.noteModal.querySelector('.sm-note-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        this.saveNote();
+      }
+      if (e.key === 'Escape') {
+        this.hideNoteModal();
+      }
+    });
+  },
+
+  // Show note modal
+  showNoteModal(highlightId) {
+    this.editingNoteId = highlightId;
+    const hl = this.activeHighlights.get(highlightId);
+    const input = this.noteModal.querySelector('.sm-note-input');
+    
+    input.value = hl?.data?.note || '';
+    this.noteModal.classList.add('visible');
+    
+    // Focus and select text
+    setTimeout(() => {
+      input.focus();
+      input.select();
+    }, 50);
+  },
+
+  // Hide note modal
+  hideNoteModal() {
+    this.noteModal.classList.remove('visible');
+    this.editingNoteId = null;
+  },
+
+  // Save note from modal
+  async saveNote() {
+    if (!this.editingNoteId) return;
+    
+    const note = this.noteModal.querySelector('.sm-note-input').value.trim();
+    const hl = this.activeHighlights.get(this.editingNoteId);
+    
+    if (hl) {
+      hl.data.note = note;
+      if (hl.element) hl.element.dataset.hasNote = note ? 'true' : '';
+      await Storage.updateHighlight(this.editingNoteId, { note });
+      window.Sidebar?.refresh();
+    }
+    
+    this.hideNoteModal();
   },
 
   // Bind event listeners
@@ -304,19 +389,9 @@ const Highlighter = {
   },
 
   // Add note to highlight
-  async addNote() {
+  addNote() {
     if (!this.currentHighlightId) return;
-    
-    const hl = this.activeHighlights.get(this.currentHighlightId);
-    if (!hl) return;
-
-    const note = prompt('Add a note:', hl.data.note || '');
-    if (note !== null) {
-      hl.data.note = note;
-      hl.element.dataset.hasNote = note ? 'true' : '';
-      await Storage.updateHighlight(this.currentHighlightId, { note });
-      window.Sidebar?.refresh();
-    }
+    this.showNoteModal(this.currentHighlightId);
     this.hidePopup();
   },
 
