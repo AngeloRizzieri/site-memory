@@ -1,13 +1,14 @@
 {
   "manifest_version": 3,
   "name": "Site Memory",
-  "version": "1.0.0",
-  "description": "Save text highlights and automatically recall them when revisiting sites",
+  "version": "2.0.0",
+  "description": "Highlight text on any website and it automatically reappears when you revisit. Organized by site, stored locally, no account needed.",
   
   "permissions": [
     "storage",
     "contextMenus",
-    "activeTab"
+    "activeTab",
+    "tabs"
   ],
   
   "host_permissions": [
@@ -24,11 +25,13 @@
       "matches": ["<all_urls>"],
       "js": [
         "src/utils/messaging.js",
-        "src/utils/hostname-utils.js",
+        "src/utils/url-utils.js",
+        "src/utils/color-utils.js",
         "src/storage/data-models.js",
         "src/storage/storage-manager.js",
         "src/utils/dom-utils.js",
         "src/content/selection-handler.js",
+        "src/content/pdf-handler.js",
         "src/ui/highlight-renderer.js",
         "src/ui/sidebar.js",
         "src/content/content-script.js"
@@ -37,7 +40,8 @@
         "src/ui/styles/highlights.css",
         "src/ui/styles/sidebar.css"
       ],
-      "run_at": "document_idle"
+      "run_at": "document_idle",
+      "all_frames": true
     }
   ],
   
@@ -45,5 +49,22 @@
     "16": "assets/icons/icon16.png",
     "48": "assets/icons/icon48.png",
     "128": "assets/icons/icon128.png"
+  },
+
+  "commands": {
+    "toggle-sidebar": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "Toggle the sidebar"
+    },
+    "save-highlight": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+H",
+        "mac": "Command+Shift+H"
+      },
+      "description": "Save current selection as highlight"
+    }
   }
 }

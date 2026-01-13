@@ -1,70 +1,54 @@
-// Import message types for service worker
-const MESSAGE_TYPES = {
-  SAVE_HIGHLIGHT: 'SAVE_HIGHLIGHT',
-  GET_HIGHLIGHTS: 'GET_HIGHLIGHTS',
-  DELETE_HIGHLIGHT: 'DELETE_HIGHLIGHT',
-  HIGHLIGHT_SAVED: 'HIGHLIGHT_SAVED',
-  HIGHLIGHTS_RETRIEVED: 'HIGHLIGHTS_RETRIEVED',
-  CONTEXT_MENU_SAVE: 'CONTEXT_MENU_SAVE',
-  CONTEXT_MENU_SAVE_IMAGE: 'CONTEXT_MENU_SAVE_IMAGE',
-  UPDATE_NOTE: 'UPDATE_NOTE',
-  TOGGLE_PIN: 'TOGGLE_PIN'
-};
+/**
+ * Background Service Worker
+ * Handles browser-level events, context menus, and keyboard shortcuts
+ */
 
-// Create context menu on install
+// Initialize context menu on install
 chrome.runtime.onInstalled.addListener(() => {
+  // Create context menu item
   chrome.contextMenus.create({
-    id: 'save-highlight',
-    title: 'Save Highlight',
+    id: 'saveHighlight',
+    title: 'Save as Highlight',
     contexts: ['selection']
   });
-  
-  chrome.contextMenus.create({
-    id: 'save-image',
-    title: 'Save Image to Site Memory',
-    contexts: ['image']
-  });
-  
-  console.log('[Site Memory] Extension installed, context menus created');
+
+  console.log('Site Memory: Extension installed');
 });
 
 // Handle context menu clicks
-chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-  if (info.menuItemId === 'save-highlight') {
-    console.log('[Site Memory] Context menu clicked, saving highlight');
-    
-    try {
-      const response = await chrome.tabs.sendMessage(tab.id, {
-        type: MESSAGE_TYPES.CONTEXT_MENU_SAVE
-      });
-      
-      console.log('[Site Memory] Save response:', response);
-    } catch (error) {
-      console.error('[Site Memory] Error saving highlight:', error);
-    }
-  }
-  
-  if (info.menuItemId === 'save-image') {
-    console.log('[Site Memory] Context menu clicked, saving image:', info.srcUrl);
-    
-    try {
-      const response = await chrome.tabs.sendMessage(tab.id, {
-        type: MESSAGE_TYPES.CONTEXT_MENU_SAVE_IMAGE,
-        imageUrl: info.srcUrl
-      });
-      
-      console.log('[Site Memory] Save image response:', response);
-    } catch (error) {
-      console.error('[Site Memory] Error saving image:', error);
-    }
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId === 'saveHighlight' && tab?.id) {
+    chrome.tabs.sendMessage(tab.id, { action: 'saveHighlight' });
   }
 });
 
-// Handle messages from content scripts
+// Handle keyboard commands
+chrome.commands.onCommand.addListener((command, tab) => {
+  if (!tab?.id) return;
+
+  switch (command) {
+    case 'toggle-sidebar':
+      chrome.tabs.sendMessage(tab.id, { action: 'toggleSidebar' });
+      break;
+      
+    case 'save-highlight':
+      chrome.tabs.sendMessage(tab.id, { action: 'saveHighlight' });
+      break;
+  }
+});
+
+// Listen for messages from content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('[Site Memory] Background received:', message.type);
+  // Handle any background-specific messages here
+  switch (message.action) {
+    case 'openTab':
+      chrome.tabs.create({ url: message.url });
+      sendResponse({ success: true });
+      break;
+      
+    default:
+      break;
+  }
   
   return false;
 });
-
-console.log('[Site Memory] Service worker initialized');

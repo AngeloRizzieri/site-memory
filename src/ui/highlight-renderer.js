@@ -1,221 +1,280 @@
+/**
+ * Highlight Renderer
+ * Renders saved highlights on the page and manages their visual state
+ */
+
 const HighlightRenderer = {
-  highlightClass: 'site-memory-highlight',
-  contextMenu: null,
+  renderedHighlights: new Map(),
+  tooltip: null,
 
-  renderHighlight(highlight) {
-    try {
-      const range = DOMUtils.deserializeRange(highlight.position);
-      
-      if (!range) {
-        console.log('[Site Memory] Could not locate highlight:', highlight.id);
-        return false;
-      }
-      
-      const wrapper = document.createElement('mark');
-      wrapper.className = this.highlightClass;
-      wrapper.dataset.highlightId = highlight.id;
-      wrapper.dataset.note = highlight.note || '';
-      wrapper.title = highlight.note || 'Click for options';
-      
-      try {
-        range.surroundContents(wrapper);
-      } catch (e) {
-        this.highlightRangeComplex(range, highlight);
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('[Site Memory] Render error:', error);
-      return false;
-    }
+  /**
+   * Initialize the renderer
+   */
+  init() {
+    this.createTooltip();
+    this.setupEventListeners();
   },
 
-  highlightRangeComplex(range, highlight) {
-    const fragment = range.extractContents();
-    const wrapper = document.createElement('mark');
-    wrapper.className = this.highlightClass;
-    wrapper.dataset.highlightId = highlight.id;
-    wrapper.dataset.note = highlight.note || '';
-    wrapper.title = highlight.note || 'Click for options';
-    wrapper.appendChild(fragment);
-    range.insertNode(wrapper);
+  /**
+   * Create the tooltip element for highlight hover
+   */
+  createTooltip() {
+    this.tooltip = document.createElement('div');
+    this.tooltip.className = 'site-memory-tooltip';
+    this.tooltip.innerHTML = `
+      <div class="sm-tooltip-content">
+        <div class="sm-tooltip-note"></div>
+        <div class="sm-tooltip-actions">
+          <button class="sm-tooltip-btn sm-edit-note" title="Edit note">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </button>
+          <button class="sm-tooltip-btn sm-delete" title="Delete highlight">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(this.tooltip);
   },
 
-  async renderAllHighlights() {
-    const hostname = getCurrentHostname();
-    if (!hostname) return;
+  /**
+   * Setup event listeners for highlight interactions
+   */
+  setupEventListeners() {
+    // Delegate hover events for highlights
+    document.addEventListener('mouseover', (e) => {
+      const highlight = e.target.closest('.site-memory-highlight');
+      if (highlight) {
+        this.showTooltip(highlight);
+      }
+    });
+
+    document.addEventListener('mouseout', (e) => {
+      const highlight = e.target.closest('.site-memory-highlight');
+      if (highlight && !e.relatedTarget?.closest('.site-memory-tooltip')) {
+        this.hideTooltip();
+      }
+    });
+
+    // Keep tooltip visible when hovering over it
+    this.tooltip.addEventListener('mouseleave', () => {
+      this.hideTooltip();
+    });
+
+    // Tooltip button actions
+    this.tooltip.querySelector('.sm-edit-note').addEventListener('click', () => {
+      this.editCurrentHighlightNote();
+    });
+
+    this.tooltip.querySelector('.sm-delete').addEventListener('click', () => {
+      this.deleteCurrentHighlight();
+    });
+  },
+
+  /**
+   * Render all highlights for the current page
+   */
+  async renderPageHighlights() {
+    const pageId = UrlUtils.getPageId(window.location.href);
+    const highlights = await StorageManager.getHighlightsForPage(pageId);
     
-    const highlights = await StorageManager.getHighlightsByHostname(hostname);
-    
-    let rendered = 0;
+    console.log(`Site Memory: Restoring ${highlights.length} highlights for page`);
+
     for (const highlight of highlights) {
-      if (this.renderHighlight(highlight)) {
-        rendered++;
-      }
+      this.renderHighlight(highlight);
     }
+  },
+
+  /**
+   * Render a single highlight
+   */
+  renderHighlight(highlight) {
+    // Don't render if already rendered
+    if (this.renderedHighlights.has(highlight.id)) {
+      return this.renderedHighlights.get(highlight.id);
+    }
+
+    // Find the text in the document
+    const range = DomUtils.findTextWithContext(
+      highlight.text,
+      highlight.context,
+      highlight.xpath
+    );
+
+    if (!range) {
+      console.warn(`Could not find text for highlight: "${highlight.text.substring(0, 30)}..."`);
+      return null;
+    }
+
+    // Wrap with highlight element
+    const wrapper = DomUtils.wrapRangeWithHighlight(range, highlight.id, highlight.color);
     
-    console.log(`[Site Memory] Rendered ${rendered}/${highlights.length} highlights`);
+    if (wrapper) {
+      wrapper.dataset.hasNote = highlight.note ? 'true' : 'false';
+      this.renderedHighlights.set(highlight.id, wrapper);
+      return wrapper;
+    }
+
+    return null;
   },
 
+  /**
+   * Remove a highlight from the page
+   */
   removeHighlight(highlightId) {
-    const element = document.querySelector(`[data-highlight-id="${highlightId}"]`);
-    if (element) {
-      const parent = element.parentNode;
-      while (element.firstChild) {
-        parent.insertBefore(element.firstChild, element);
+    DomUtils.removeHighlightWrapper(highlightId);
+    this.renderedHighlights.delete(highlightId);
+  },
+
+  /**
+   * Show tooltip for a highlight
+   */
+  async showTooltip(highlightElement) {
+    const highlightId = highlightElement.dataset.highlightId;
+    const highlights = await StorageManager.getHighlightsForPage(
+      UrlUtils.getPageId(window.location.href)
+    );
+    const highlight = highlights.find(h => h.id === highlightId);
+
+    if (!highlight) return;
+
+    this.currentHighlightId = highlightId;
+
+    // Update tooltip content
+    const noteEl = this.tooltip.querySelector('.sm-tooltip-note');
+    if (highlight.note) {
+      noteEl.textContent = highlight.note;
+      noteEl.style.display = 'block';
+    } else {
+      noteEl.textContent = 'Click edit to add a note';
+      noteEl.style.display = 'block';
+      noteEl.style.opacity = '0.5';
+      noteEl.style.fontStyle = 'italic';
+    }
+
+    // Position tooltip
+    const rect = highlightElement.getBoundingClientRect();
+    const tooltipRect = this.tooltip.getBoundingClientRect();
+    
+    let left = rect.left + (rect.width / 2) - 100;
+    let top = rect.bottom + 8 + window.scrollY;
+
+    // Keep within viewport
+    if (left < 10) left = 10;
+    if (left + 200 > window.innerWidth) left = window.innerWidth - 210;
+    
+    // If would go below viewport, show above
+    if (rect.bottom + tooltipRect.height + 20 > window.innerHeight) {
+      top = rect.top - tooltipRect.height - 8 + window.scrollY;
+    }
+
+    this.tooltip.style.left = `${left}px`;
+    this.tooltip.style.top = `${top}px`;
+    this.tooltip.classList.add('visible');
+  },
+
+  /**
+   * Hide tooltip
+   */
+  hideTooltip() {
+    this.tooltip.classList.remove('visible');
+    this.currentHighlightId = null;
+  },
+
+  /**
+   * Edit the current highlight's note
+   */
+  async editCurrentHighlightNote() {
+    if (!this.currentHighlightId) return;
+
+    const highlights = await StorageManager.getHighlightsForPage(
+      UrlUtils.getPageId(window.location.href)
+    );
+    const highlight = highlights.find(h => h.id === this.currentHighlightId);
+
+    if (!highlight) return;
+
+    const newNote = prompt('Add a note to this highlight:', highlight.note || '');
+    
+    if (newNote !== null) {
+      await StorageManager.updateHighlight(this.currentHighlightId, { note: newNote });
+      
+      // Update visual indicator
+      const wrapper = this.renderedHighlights.get(this.currentHighlightId);
+      if (wrapper) {
+        wrapper.dataset.hasNote = newNote ? 'true' : 'false';
       }
-      parent.removeChild(element);
+
+      // Refresh sidebar
+      if (window.Sidebar) {
+        Sidebar.refresh();
+      }
+    }
+
+    this.hideTooltip();
+  },
+
+  /**
+   * Delete the current highlight
+   */
+  async deleteCurrentHighlight() {
+    if (!this.currentHighlightId) return;
+
+    const confirmed = confirm('Delete this highlight?');
+    if (!confirmed) return;
+
+    await StorageManager.deleteHighlight(this.currentHighlightId);
+    this.removeHighlight(this.currentHighlightId);
+    this.hideTooltip();
+
+    // Refresh sidebar
+    if (window.Sidebar) {
+      Sidebar.refresh();
     }
   },
 
+  /**
+   * Update highlight color
+   */
+  async updateHighlightColor(highlightId, color) {
+    await StorageManager.updateHighlight(highlightId, { color });
+    
+    const wrapper = this.renderedHighlights.get(highlightId);
+    if (wrapper) {
+      wrapper.style.setProperty('--highlight-color', color);
+    }
+  },
+
+  /**
+   * Scroll to a highlight
+   */
   scrollToHighlight(highlightId) {
-    const element = document.querySelector(`[data-highlight-id="${highlightId}"]`);
-    if (element) {
-      DOMUtils.scrollToElement(element);
-      element.classList.add('site-memory-flash');
-      setTimeout(() => element.classList.remove('site-memory-flash'), 1500);
+    const wrapper = this.renderedHighlights.get(highlightId);
+    if (wrapper) {
+      DomUtils.scrollToElement(wrapper);
+      
+      // Flash effect
+      wrapper.classList.add('flash');
+      setTimeout(() => wrapper.classList.remove('flash'), 1000);
     }
   },
 
-  showContextMenu(highlightId, x, y, note) {
-    this.hideContextMenu();
-
-    const menu = document.createElement('div');
-    menu.className = 'site-memory-context-menu';
-    menu.innerHTML = `
-      <button class="edit-note">✏️ ${note ? 'Edit' : 'Add'} Note</button>
-      <button class="scroll-to">🎯 Scroll to Highlight</button>
-      <button class="delete">🗑️ Delete Highlight</button>
-    `;
-
-    menu.style.left = `${x}px`;
-    menu.style.top = `${y}px`;
-
-    menu.querySelector('.edit-note').addEventListener('click', () => {
-      this.showEditNoteModal(highlightId, note);
-      this.hideContextMenu();
-    });
-
-    menu.querySelector('.scroll-to').addEventListener('click', () => {
-      this.scrollToHighlight(highlightId);
-      this.hideContextMenu();
-    });
-
-    menu.querySelector('.delete').addEventListener('click', async () => {
-      const hostname = getCurrentHostname();
-      await StorageManager.deleteHighlight(hostname, highlightId);
-      this.removeHighlight(highlightId);
-      this.hideContextMenu();
-      if (window.Sidebar) {
-        Sidebar.refresh();
-      }
-    });
-
-    document.body.appendChild(menu);
-    this.contextMenu = menu;
-
-    setTimeout(() => {
-      document.addEventListener('click', this.hideContextMenu.bind(this), { once: true });
-    }, 10);
-  },
-
-  showEditNoteModal(highlightId, currentNote) {
-    const overlay = document.createElement('div');
-    overlay.className = 'site-memory-modal-overlay';
-    overlay.innerHTML = `
-      <div class="site-memory-modal">
-        <h3>✏️ ${currentNote ? 'Edit' : 'Add'} Note</h3>
-        <textarea placeholder="Add a note..." id="site-memory-edit-note">${this.escapeHtml(currentNote || '')}</textarea>
-        <div class="site-memory-modal-buttons">
-          <button class="site-memory-btn-cancel">Cancel</button>
-          <button class="site-memory-btn-save">Save</button>
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(overlay);
-
-    const textarea = overlay.querySelector('textarea');
-    textarea.focus();
-    textarea.setSelectionRange(textarea.value.length, textarea.value.length);
-
-    const closeModal = () => overlay.remove();
-
-    const saveNote = async () => {
-      const newNote = textarea.value.trim();
-      const hostname = getCurrentHostname();
-      await StorageManager.updateNote(hostname, highlightId, newNote);
-      
-      // Update the DOM element's data attribute
-      const element = document.querySelector(`[data-highlight-id="${highlightId}"]`);
-      if (element) {
-        element.dataset.note = newNote;
-        element.title = newNote || 'Click for options';
-      }
-      
-      if (window.Sidebar) {
-        Sidebar.refresh();
-      }
-      closeModal();
-    };
-
-    overlay.querySelector('.site-memory-btn-cancel').addEventListener('click', closeModal);
-    overlay.querySelector('.site-memory-btn-save').addEventListener('click', saveNote);
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) closeModal();
-    });
-    textarea.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        saveNote();
-      }
-      if (e.key === 'Escape') {
-        closeModal();
-      }
-    });
-  },
-
-  showNoteModal(note) {
-    const overlay = document.createElement('div');
-    overlay.className = 'site-memory-modal-overlay';
-    overlay.innerHTML = `
-      <div class="site-memory-modal site-memory-note-modal">
-        <h3>📝 Note</h3>
-        <div class="site-memory-note-content">${this.escapeHtml(note)}</div>
-        <div class="site-memory-modal-buttons">
-          <button class="site-memory-btn-save">OK</button>
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(overlay);
-
-    const closeModal = () => overlay.remove();
-
-    overlay.querySelector('.site-memory-btn-save').addEventListener('click', closeModal);
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) closeModal();
-    });
-    document.addEventListener('keydown', function handler(e) {
-      if (e.key === 'Escape') {
-        closeModal();
-        document.removeEventListener('keydown', handler);
-      }
-    });
-  },
-
-  escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  },
-
-  hideContextMenu() {
-    if (this.contextMenu) {
-      this.contextMenu.remove();
-      this.contextMenu = null;
+  /**
+   * Clear all rendered highlights
+   */
+  clearAll() {
+    for (const [id, wrapper] of this.renderedHighlights) {
+      DomUtils.removeHighlightWrapper(id);
     }
+    this.renderedHighlights.clear();
   }
 };
 
+// Make available globally
 window.HighlightRenderer = HighlightRenderer;

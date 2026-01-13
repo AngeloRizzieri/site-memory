@@ -1,207 +1,252 @@
+/**
+ * Selection Handler
+ * Manages text selection and highlight creation
+ */
+
 const SelectionHandler = {
   currentSelection: null,
-  currentImage: null,
+  quickMenu: null,
+  selectedColor: '#fbbf24',
+  colors: [
+    '#fbbf24', // Yellow
+    '#34d399', // Green  
+    '#60a5fa', // Blue
+    '#f472b6', // Pink
+    '#a78bfa', // Purple
+    '#fb923c', // Orange
+  ],
 
-  getSelectionData() {
-    const selection = window.getSelection();
-    
-    if (!selection || selection.isCollapsed || !selection.toString().trim()) {
-      return null;
-    }
-    
-    const range = selection.getRangeAt(0);
-    const text = selection.toString().trim();
-    
-    if (text.length < 3) return null;
-    
-    const position = DOMUtils.serializeRange(range);
-    
-    this.currentSelection = {
-      text,
-      ...position,
-      hostname: getCurrentHostname(),
-      url: window.location.href
-    };
-    
-    return this.currentSelection;
+  /**
+   * Initialize the selection handler
+   */
+  init() {
+    this.createQuickMenu();
+    this.setupEventListeners();
   },
 
-  clearSelection() {
-    this.currentSelection = null;
-    window.getSelection()?.removeAllRanges();
+  /**
+   * Create the quick action menu that appears on selection
+   */
+  createQuickMenu() {
+    this.quickMenu = document.createElement('div');
+    this.quickMenu.className = 'site-memory-quick-menu';
+    this.quickMenu.innerHTML = `
+      <div class="sm-quick-menu-content">
+        <div class="sm-color-picker">
+          ${this.colors.map((color, i) => `
+            <button class="sm-color-btn ${i === 0 ? 'active' : ''}" 
+                    data-color="${color}" 
+                    style="background-color: ${color}"
+                    title="Highlight color">
+            </button>
+          `).join('')}
+        </div>
+        <div class="sm-quick-actions">
+          <button class="sm-save-btn" title="Save highlight (Ctrl+Shift+H)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/>
+              <polyline points="7 3 7 8 15 8"/>
+            </svg>
+            Save
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(this.quickMenu);
+    this.setupQuickMenuEvents();
   },
 
-  showSaveModal() {
-    const selectionData = this.getSelectionData();
+  /**
+   * Setup events for the quick menu
+   */
+  setupQuickMenuEvents() {
+    // Color selection
+    this.quickMenu.querySelectorAll('.sm-color-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Update active state
+        this.quickMenu.querySelectorAll('.sm-color-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        this.selectedColor = btn.dataset.color;
+      });
+    });
+
+    // Save button
+    this.quickMenu.querySelector('.sm-save-btn').addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.saveCurrentSelection();
+    });
+
+    // Prevent menu from closing when clicking inside
+    this.quickMenu.addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+    });
+  },
+
+  /**
+   * Setup global event listeners
+   */
+  setupEventListeners() {
+    // Track selection changes
+    document.addEventListener('mouseup', (e) => {
+      // Ignore if clicking inside sidebar or menu
+      if (e.target.closest('.site-memory-sidebar') || 
+          e.target.closest('.site-memory-quick-menu')) {
+        return;
+      }
+
+      setTimeout(() => this.handleSelectionChange(e), 10);
+    });
+
+    // Hide menu on scroll or click elsewhere
+    document.addEventListener('mousedown', (e) => {
+      if (!e.target.closest('.site-memory-quick-menu')) {
+        this.hideQuickMenu();
+      }
+    });
+
+    document.addEventListener('scroll', () => {
+      this.hideQuickMenu();
+    }, true);
+
+    // Keyboard shortcut for saving
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'h') {
+        e.preventDefault();
+        this.saveCurrentSelection();
+      }
+    });
+  },
+
+  /**
+   * Handle selection changes
+   */
+  handleSelectionChange(e) {
+    const details = DomUtils.getSelectionDetails();
     
-    if (!selectionData) {
-      console.log('[Site Memory] No valid selection to save');
+    if (!details) {
+      this.hideQuickMenu();
+      this.currentSelection = null;
       return;
     }
 
-    const overlay = document.createElement('div');
-    overlay.className = 'site-memory-modal-overlay';
-    overlay.innerHTML = `
-      <div class="site-memory-modal">
-        <h3>💾 Save Highlight</h3>
-        <div class="site-memory-modal-text">"${this.escapeHtml(selectionData.text)}"</div>
-        <textarea placeholder="Add a note (optional)..." id="site-memory-note-input"></textarea>
-        <div class="site-memory-modal-buttons">
-          <button class="site-memory-btn-cancel">Cancel</button>
-          <button class="site-memory-btn-save">Save Highlight</button>
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(overlay);
-
-    const textarea = overlay.querySelector('textarea');
-    textarea.focus();
-
-    overlay.querySelector('.site-memory-btn-cancel').addEventListener('click', () => {
-      overlay.remove();
-    });
-
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) {
-        overlay.remove();
-      }
-    });
-
-    overlay.querySelector('.site-memory-btn-save').addEventListener('click', async () => {
-      const note = textarea.value.trim();
-      await this.saveCurrentSelection(note);
-      overlay.remove();
-    });
-
-    textarea.addEventListener('keydown', async (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        const note = textarea.value.trim();
-        await this.saveCurrentSelection(note);
-        overlay.remove();
-      }
-      if (e.key === 'Escape') {
-        overlay.remove();
-      }
+    this.currentSelection = details;
+    this.showQuickMenu(details.rect || { 
+      left: e.clientX, 
+      top: e.clientY - 50,
+      width: 0
     });
   },
 
-  showSaveImageModal(imageUrl) {
-    this.currentImage = {
-      imageUrl,
-      hostname: getCurrentHostname(),
-      url: window.location.href
-    };
+  /**
+   * Show the quick menu near the selection
+   */
+  showQuickMenu(rect) {
+    const menu = this.quickMenu;
+    const menuRect = menu.getBoundingClientRect();
+    
+    // Position above selection
+    let left = rect.left + (rect.width / 2) - 80;
+    let top = rect.top - 60 + window.scrollY;
 
-    const overlay = document.createElement('div');
-    overlay.className = 'site-memory-modal-overlay';
-    overlay.innerHTML = `
-      <div class="site-memory-modal">
-        <h3>🖼️ Save Image</h3>
-        <div class="site-memory-modal-image">
-          <img src="${this.escapeHtml(imageUrl)}" alt="Image to save" />
-        </div>
-        <textarea placeholder="Add a note (optional)..." id="site-memory-note-input"></textarea>
-        <div class="site-memory-modal-buttons">
-          <button class="site-memory-btn-cancel">Cancel</button>
-          <button class="site-memory-btn-save">Save Image</button>
-        </div>
-      </div>
-    `;
+    // Keep within viewport
+    if (left < 10) left = 10;
+    if (left + 160 > window.innerWidth) left = window.innerWidth - 170;
+    if (top < 10) top = rect.bottom + 10 + window.scrollY;
 
-    document.body.appendChild(overlay);
-
-    const textarea = overlay.querySelector('textarea');
-    textarea.focus();
-
-    overlay.querySelector('.site-memory-btn-cancel').addEventListener('click', () => {
-      this.currentImage = null;
-      overlay.remove();
-    });
-
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) {
-        this.currentImage = null;
-        overlay.remove();
-      }
-    });
-
-    overlay.querySelector('.site-memory-btn-save').addEventListener('click', async () => {
-      const note = textarea.value.trim();
-      await this.saveCurrentImage(note);
-      overlay.remove();
-    });
-
-    textarea.addEventListener('keydown', async (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        const note = textarea.value.trim();
-        await this.saveCurrentImage(note);
-        overlay.remove();
-      }
-      if (e.key === 'Escape') {
-        this.currentImage = null;
-        overlay.remove();
-      }
-    });
+    menu.style.left = `${left}px`;
+    menu.style.top = `${top}px`;
+    menu.classList.add('visible');
   },
 
-  async saveCurrentSelection(note = '') {
-    // Use the cached selection data, not a fresh call
+  /**
+   * Hide the quick menu
+   */
+  hideQuickMenu() {
+    this.quickMenu.classList.remove('visible');
+  },
+
+  /**
+   * Save the current selection as a highlight
+   */
+  async saveCurrentSelection() {
     if (!this.currentSelection) {
-      console.log('[Site Memory] No valid selection to save');
-      return null;
+      console.log('No selection to save');
+      return;
     }
-    
-    const highlight = createHighlight({
-      ...this.currentSelection,
-      type: 'text',
-      note
+
+    const { text, xpath, textOffset, textLength, context } = this.currentSelection;
+    const url = window.location.href;
+
+    const highlight = DataModels.createHighlight({
+      text,
+      color: this.selectedColor,
+      pageId: UrlUtils.getPageId(url),
+      url,
+      hostname: UrlUtils.getHostname(url),
+      pageTitle: DomUtils.getPageTitle(),
+      xpath,
+      textOffset,
+      textLength,
+      context,
+      isPdf: UrlUtils.isPdfUrl(url)
     });
-    
-    const result = await StorageManager.saveHighlight(highlight);
-    
-    if (result.success) {
+
+    try {
+      await StorageManager.addHighlight(highlight);
+      
+      // Apply the highlight visually
       HighlightRenderer.renderHighlight(highlight);
-      this.clearSelection();
+      
+      // Clear selection and hide menu
+      window.getSelection().removeAllRanges();
+      this.hideQuickMenu();
+      this.currentSelection = null;
+
+      // Notify sidebar to refresh
       if (window.Sidebar) {
         Sidebar.refresh();
       }
+
+      // Show brief success feedback
+      this.showSaveToast();
+    } catch (error) {
+      console.error('Failed to save highlight:', error);
     }
-    
-    return result;
   },
 
-  async saveCurrentImage(note = '') {
-    if (!this.currentImage) {
-      console.log('[Site Memory] No image to save');
-      return null;
-    }
-    
-    const highlight = createHighlight({
-      ...this.currentImage,
-      type: 'image',
-      note
+  /**
+   * Show a brief toast notification
+   */
+  showSaveToast() {
+    const toast = document.createElement('div');
+    toast.className = 'site-memory-toast';
+    toast.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+      Highlight saved
+    `;
+    document.body.appendChild(toast);
+
+    // Trigger animation
+    requestAnimationFrame(() => {
+      toast.classList.add('visible');
     });
-    
-    const result = await StorageManager.saveHighlight(highlight);
-    
-    if (result.success) {
-      this.currentImage = null;
-      if (window.Sidebar) {
-        Sidebar.refresh();
-      }
-    }
-    
-    return result;
-  },
 
-  escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    // Remove after animation
+    setTimeout(() => {
+      toast.classList.remove('visible');
+      setTimeout(() => toast.remove(), 300);
+    }, 2000);
   }
 };
 
+// Make available globally
 window.SelectionHandler = SelectionHandler;

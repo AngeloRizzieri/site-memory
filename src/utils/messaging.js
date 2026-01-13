@@ -1,30 +1,44 @@
-const MESSAGE_TYPES = {
-  // Content → Background
-  SAVE_HIGHLIGHT: 'SAVE_HIGHLIGHT',
-  GET_HIGHLIGHTS: 'GET_HIGHLIGHTS',
-  DELETE_HIGHLIGHT: 'DELETE_HIGHLIGHT',
-  
-  // Background → Content
-  HIGHLIGHT_SAVED: 'HIGHLIGHT_SAVED',
-  HIGHLIGHTS_RETRIEVED: 'HIGHLIGHTS_RETRIEVED',
-  
-  // Context menu
-  CONTEXT_MENU_SAVE: 'CONTEXT_MENU_SAVE',
-  CONTEXT_MENU_SAVE_IMAGE: 'CONTEXT_MENU_SAVE_IMAGE',
-  
-  // Future
-  UPDATE_NOTE: 'UPDATE_NOTE',
-  TOGGLE_PIN: 'TOGGLE_PIN'
+/**
+ * Messaging utility for communication between content scripts and background
+ */
+
+const Messaging = {
+  /**
+   * Send a message to the background script
+   */
+  sendToBackground(action, data = {}) {
+    return new Promise((resolve, reject) => {
+      try {
+        chrome.runtime.sendMessage({ action, ...data }, (response) => {
+          if (chrome.runtime.lastError) {
+            reject(chrome.runtime.lastError);
+          } else {
+            resolve(response);
+          }
+        });
+      } catch (error) {
+        reject(error);
+      }
+    });
+  },
+
+  /**
+   * Listen for messages from background
+   */
+  onMessage(callback) {
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      const result = callback(message, sender);
+      if (result instanceof Promise) {
+        result.then(sendResponse).catch(console.error);
+        return true; // Keep channel open for async response
+      }
+      if (result !== undefined) {
+        sendResponse(result);
+      }
+      return false;
+    });
+  }
 };
 
-function createMessage(type, payload = {}) {
-  return {
-    type,
-    payload,
-    timestamp: Date.now()
-  };
-}
-
-// Make available globally for content scripts
-window.MESSAGE_TYPES = MESSAGE_TYPES;
-window.createMessage = createMessage;
+// Make available globally
+window.Messaging = Messaging;

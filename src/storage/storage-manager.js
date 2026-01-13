@@ -1,105 +1,320 @@
+/**
+ * Storage Manager for Site Memory
+ * Handles all data persistence with Chrome's storage API
+ * Organized by site for the folder view
+ */
+
 const StorageManager = {
-  // Get storage key for a hostname
-  getKey(hostname) {
-    return `highlights_${hostname}`;
+  STORAGE_KEY: 'siteMemoryData',
+  SETTINGS_KEY: 'siteMemorySettings',
+
+  /**
+   * Get all stored data
+   */
+  async getAllData() {
+    return new Promise((resolve) => {
+      chrome.storage.local.get([this.STORAGE_KEY], (result) => {
+        const data = result[this.STORAGE_KEY] || {
+          highlights: [],
+          sites: {},
+          version: 2
+        };
+        resolve(data);
+      });
+    });
   },
 
-  // Save a new highlight
-  async saveHighlight(highlight) {
-    const key = this.getKey(highlight.hostname);
+  /**
+   * Save all data
+   */
+  async saveAllData(data) {
+    return new Promise((resolve, reject) => {
+      chrome.storage.local.set({ [this.STORAGE_KEY]: data }, () => {
+        if (chrome.runtime.lastError) {
+          reject(chrome.runtime.lastError);
+        } else {
+          resolve();
+        }
+      });
+    });
+  },
+
+  /**
+   * Get highlights for a specific page (using pageId for exact match)
+   * This is the key fix - uses full path not just hostname
+   */
+  async getHighlightsForPage(pageId) {
+    const data = await this.getAllData();
+    return data.highlights.filter(h => h.pageId === pageId);
+  },
+
+  /**
+   * Get all highlights for a hostname (for sidebar folder view)
+   */
+  async getHighlightsForSite(hostname) {
+    const data = await this.getAllData();
+    return data.highlights.filter(h => h.hostname === hostname);
+  },
+
+  /**
+   * Get all highlights
+   */
+  async getAllHighlights() {
+    const data = await this.getAllData();
+    return data.highlights || [];
+  },
+
+  /**
+   * Add a new highlight
+   */
+  async addHighlight(highlight) {
+    if (!DataModels.validateHighlight(highlight)) {
+      throw new Error('Invalid highlight data');
+    }
+
+    const data = await this.getAllData();
+    data.highlights.push(highlight);
     
-    try {
-      const result = await chrome.storage.local.get(key);
-      const highlights = result[key] || [];
-      
-      highlights.push(highlight);
-      
-      await chrome.storage.local.set({ [key]: highlights });
-      
-      console.log('[Site Memory] Highlight saved:', highlight.id);
-      return { success: true, highlight };
-    } catch (error) {
-      console.error('[Site Memory] Save error:', error);
-      return { success: false, error: error.message };
+    // Update site metadata
+    this.updateSiteMetadata(data, highlight);
+    
+    await this.saveAllData(data);
+    return highlight;
+  },
+
+  /**
+   * Update an existing highlight
+   */
+  async updateHighlight(highlightId, updates) {
+    const data = await this.getAllData();
+    const index = data.highlights.findIndex(h => h.id === highlightId);
+    
+    if (index === -1) {
+      throw new Error('Highlight not found');
+    }
+
+    data.highlights[index] = {
+      ...data.highlights[index],
+      ...updates,
+      updatedAt: Date.now()
+    };
+
+    await this.saveAllData(data);
+    return data.highlights[index];
+  },
+
+  /**
+   * Delete a highlight
+   */
+  async deleteHighlight(highlightId) {
+    const data = await this.getAllData();
+    const highlight = data.highlights.find(h => h.id === highlightId);
+    
+    if (!highlight) {
+      throw new Error('Highlight not found');
+    }
+
+    data.highlights = data.highlights.filter(h => h.id !== highlightId);
+    
+    // Update site metadata
+    this.recalculateSiteMetadata(data);
+    
+    await this.saveAllData(data);
+    return true;
+  },
+
+  /**
+   * Delete all highlights for a page
+   */
+  async deletePageHighlights(pageId) {
+    const data = await this.getAllData();
+    data.highlights = data.highlights.filter(h => h.pageId !== pageId);
+    this.recalculateSiteMetadata(data);
+    await this.saveAllData(data);
+    return true;
+  },
+
+  /**
+   * Delete all highlights for a site
+   */
+  async deleteSiteHighlights(hostname) {
+    const data = await this.getAllData();
+    data.highlights = data.highlights.filter(h => h.hostname !== hostname);
+    delete data.sites[hostname];
+    await this.saveAllData(data);
+    return true;
+  },
+
+  /**
+   * Update site metadata after adding a highlight
+   */
+  updateSiteMetadata(data, highlight) {
+    const { hostname } = highlight;
+    
+    if (!data.sites[hostname]) {
+      data.sites[hostname] = DataModels.createSite({
+        hostname,
+        displayName: UrlUtils.getDisplayDomain(highlight.url),
+        favicon: UrlUtils.getFaviconUrl(highlight.url)
+      });
+    }
+
+    const site = data.sites[hostname];
+    const siteHighlights = data.highlights.filter(h => h.hostname === hostname);
+    const uniquePages = new Set(siteHighlights.map(h => h.pageId));
+    
+    site.highlightCount = siteHighlights.length;
+    site.pageCount = uniquePages.size;
+    site.lastVisited = Date.now();
+  },
+
+  /**
+   * Recalculate all site metadata (after deletions)
+   */
+  recalculateSiteMetadata(data) {
+    data.sites = {};
+    
+    for (const highlight of data.highlights) {
+      this.updateSiteMetadata(data, highlight);
     }
   },
 
-  // Get all highlights for a hostname
-  async getHighlightsByHostname(hostname) {
-    const key = this.getKey(hostname);
-    
-    try {
-      const result = await chrome.storage.local.get(key);
-      const highlights = result[key] || [];
-      
-      // Sort by timestamp, newest first
-      highlights.sort((a, b) => b.timestamp - a.timestamp);
-      
-      console.log(`[Site Memory] Retrieved ${highlights.length} highlights for ${hostname}`);
-      return highlights;
-    } catch (error) {
-      console.error('[Site Memory] Retrieval error:', error);
-      return [];
-    }
-  },
+  /**
+   * Get organized data for sidebar (grouped by site, then by page)
+   */
+  async getOrganizedData() {
+    const data = await this.getAllData();
+    const organized = {};
 
-  // Delete a highlight by ID
-  async deleteHighlight(hostname, highlightId) {
-    const key = this.getKey(hostname);
-    
-    try {
-      const result = await chrome.storage.local.get(key);
-      let highlights = result[key] || [];
-      
-      highlights = highlights.filter(h => h.id !== highlightId);
-      
-      await chrome.storage.local.set({ [key]: highlights });
-      
-      console.log('[Site Memory] Highlight deleted:', highlightId);
-      return { success: true };
-    } catch (error) {
-      console.error('[Site Memory] Delete error:', error);
-      return { success: false, error: error.message };
-    }
-  },
+    for (const highlight of data.highlights) {
+      const { hostname, pageId } = highlight;
 
-  // Update a highlight's note
-  async updateNote(hostname, highlightId, newNote) {
-    const key = this.getKey(hostname);
-    
-    try {
-      const result = await chrome.storage.local.get(key);
-      let highlights = result[key] || [];
-      
-      const highlight = highlights.find(h => h.id === highlightId);
-      if (highlight) {
-        highlight.note = newNote;
-        await chrome.storage.local.set({ [key]: highlights });
-        console.log('[Site Memory] Note updated:', highlightId);
-        return { success: true };
+      if (!organized[hostname]) {
+        organized[hostname] = {
+          site: data.sites[hostname] || DataModels.createSite({
+            hostname,
+            displayName: UrlUtils.getDisplayDomain(highlight.url),
+            favicon: UrlUtils.getFaviconUrl(highlight.url)
+          }),
+          pages: {}
+        };
       }
+
+      if (!organized[hostname].pages[pageId]) {
+        organized[hostname].pages[pageId] = {
+          page: DataModels.createPage({
+            pageId,
+            url: highlight.url,
+            title: highlight.pageTitle || UrlUtils.getPageTitle(highlight.url)
+          }),
+          highlights: []
+        };
+      }
+
+      organized[hostname].pages[pageId].highlights.push(highlight);
+      organized[hostname].pages[pageId].page.highlightCount++;
+    }
+
+    return organized;
+  },
+
+  /**
+   * Search highlights
+   */
+  async searchHighlights(query) {
+    const data = await this.getAllData();
+    const lowerQuery = query.toLowerCase();
+    
+    return data.highlights.filter(h => {
+      return h.text.toLowerCase().includes(lowerQuery) ||
+             (h.note && h.note.toLowerCase().includes(lowerQuery)) ||
+             (h.pageTitle && h.pageTitle.toLowerCase().includes(lowerQuery));
+    });
+  },
+
+  /**
+   * Export all data
+   */
+  async exportData() {
+    const data = await this.getAllData();
+    return JSON.stringify(data, null, 2);
+  },
+
+  /**
+   * Import data
+   */
+  async importData(jsonString) {
+    try {
+      const imported = JSON.parse(jsonString);
       
-      return { success: false, error: 'Highlight not found' };
+      // Validate structure
+      if (!imported.highlights || !Array.isArray(imported.highlights)) {
+        throw new Error('Invalid data format');
+      }
+
+      // Merge with existing data or replace
+      const currentData = await this.getAllData();
+      
+      // Add imported highlights, avoiding duplicates
+      const existingIds = new Set(currentData.highlights.map(h => h.id));
+      const newHighlights = imported.highlights.filter(h => !existingIds.has(h.id));
+      
+      currentData.highlights = [...currentData.highlights, ...newHighlights];
+      this.recalculateSiteMetadata(currentData);
+      
+      await this.saveAllData(currentData);
+      return newHighlights.length;
     } catch (error) {
-      console.error('[Site Memory] Update note error:', error);
-      return { success: false, error: error.message };
+      throw new Error(`Import failed: ${error.message}`);
     }
   },
 
-  // Get all hostnames that have saved highlights
-  async getAllHostnames() {
-    try {
-      const all = await chrome.storage.local.get(null);
-      const hostnames = Object.keys(all)
-        .filter(key => key.startsWith('highlights_'))
-        .map(key => key.replace('highlights_', ''));
-      return hostnames;
-    } catch (error) {
-      console.error('[Site Memory] Get hostnames error:', error);
-      return [];
+  /**
+   * Get settings
+   */
+  async getSettings() {
+    return new Promise((resolve) => {
+      chrome.storage.local.get([this.SETTINGS_KEY], (result) => {
+        resolve(result[this.SETTINGS_KEY] || {
+          defaultColor: '#fbbf24',
+          autoSave: false,
+          showNotePrompt: true
+        });
+      });
+    });
+  },
+
+  /**
+   * Save settings
+   */
+  async saveSettings(settings) {
+    return new Promise((resolve) => {
+      chrome.storage.local.set({ [this.SETTINGS_KEY]: settings }, resolve);
+    });
+  },
+
+  /**
+   * Clear all data
+   */
+  async clearAllData() {
+    return new Promise((resolve) => {
+      chrome.storage.local.remove([this.STORAGE_KEY], resolve);
+    });
+  },
+
+  /**
+   * Toggle site expansion state
+   */
+  async toggleSiteExpansion(hostname) {
+    const data = await this.getAllData();
+    if (data.sites[hostname]) {
+      data.sites[hostname].isExpanded = !data.sites[hostname].isExpanded;
+      await this.saveAllData(data);
+      return data.sites[hostname].isExpanded;
     }
+    return true;
   }
 };
 
-
+// Make available globally
 window.StorageManager = StorageManager;
