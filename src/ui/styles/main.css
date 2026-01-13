@@ -1,0 +1,437 @@
+/**
+ * Site Memory - Sleek Dark UI
+ */
+
+/* ========== HIGHLIGHTS ========== */
+.site-memory-hl {
+  --hl-color: #facc15;
+  background: linear-gradient(to bottom, 
+    color-mix(in srgb, var(--hl-color) 45%, transparent),
+    color-mix(in srgb, var(--hl-color) 30%, transparent)
+  );
+  border-radius: 2px;
+  padding: 0 1px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.site-memory-hl:hover {
+  background: color-mix(in srgb, var(--hl-color) 50%, transparent);
+}
+
+.site-memory-hl[data-has-note="true"]::after {
+  content: '•';
+  color: var(--hl-color);
+  font-weight: bold;
+  margin-left: 2px;
+  font-size: 0.8em;
+}
+
+.site-memory-hl.flash {
+  animation: hl-flash 1.5s ease;
+}
+
+@keyframes hl-flash {
+  0%, 100% { box-shadow: none; }
+  30%, 70% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--hl-color) 50%, transparent); }
+}
+
+/* ========== POPUP ========== */
+.sm-popup {
+  position: absolute;
+  z-index: 2147483646;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(6px);
+  transition: all 0.15s ease;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+.sm-popup.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.sm-popup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 10px;
+  padding: 6px 8px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+}
+
+.sm-popup-colors {
+  display: flex;
+  gap: 4px;
+}
+
+.sm-color {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  padding: 0;
+}
+
+.sm-color:hover { transform: scale(1.1); }
+.sm-color.active { border-color: #fff; }
+
+.sm-popup-actions {
+  display: flex;
+  gap: 2px;
+  margin-left: 4px;
+  padding-left: 6px;
+  border-left: 1px solid #27272a;
+}
+
+.sm-popup-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: #71717a;
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.sm-popup-btn:hover {
+  background: #27272a;
+  color: #fafafa;
+}
+
+.sm-popup-btn.sm-delete:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+/* ========== SIDEBAR ========== */
+.sm-sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 0;
+  z-index: 2147483640;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.sm-sidebar * { box-sizing: border-box; }
+
+.sm-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(2px);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+}
+
+.sm-sidebar.open .sm-backdrop {
+  opacity: 1;
+  visibility: visible;
+}
+
+.sm-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 320px;
+  height: 100%;
+  background: #0a0a0a;
+  border-left: 1px solid #1f1f1f;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sm-sidebar.open .sm-panel {
+  transform: translateX(0);
+}
+
+/* Header */
+.sm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 14px;
+  border-bottom: 1px solid #1f1f1f;
+}
+
+.sm-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: #fafafa;
+  letter-spacing: -0.01em;
+}
+
+.sm-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: #71717a;
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.sm-close:hover {
+  background: #1f1f1f;
+  color: #fafafa;
+}
+
+/* Search */
+.sm-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 12px;
+  padding: 8px 10px;
+  background: #141414;
+  border: 1px solid #1f1f1f;
+  border-radius: 8px;
+  transition: border-color 0.15s ease;
+}
+
+.sm-search:focus-within {
+  border-color: #3f3f46;
+}
+
+.sm-search svg {
+  color: #52525b;
+  flex-shrink: 0;
+}
+
+.sm-search-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: #fafafa;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.sm-search-input::placeholder {
+  color: #52525b;
+}
+
+/* Content */
+.sm-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 0;
+}
+
+.sm-content::-webkit-scrollbar {
+  width: 5px;
+}
+
+.sm-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sm-content::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 3px;
+}
+
+/* Empty state */
+.sm-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 50px 30px;
+  text-align: center;
+  color: #52525b;
+}
+
+.sm-empty svg { margin-bottom: 12px; }
+.sm-empty p { color: #a1a1aa; font-weight: 500; margin: 0 0 4px; }
+.sm-empty span { font-size: 12px; }
+
+/* Page group */
+.sm-page {
+  margin-bottom: 2px;
+}
+
+.sm-page.current {
+  background: rgba(250, 204, 21, 0.03);
+}
+
+.sm-page-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  cursor: default;
+}
+
+.sm-page-header:hover {
+  background: #141414;
+}
+
+.sm-favicon {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.sm-page-title {
+  flex: 1;
+  color: #e4e4e7;
+  font-weight: 500;
+  font-size: 12px;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.1s ease;
+}
+
+.sm-page-title:hover {
+  color: #facc15;
+}
+
+.sm-count {
+  font-size: 11px;
+  color: #52525b;
+  background: #1f1f1f;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.sm-page-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  color: #52525b;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.1s ease;
+}
+
+.sm-page-header:hover .sm-page-delete {
+  opacity: 1;
+}
+
+.sm-page-delete:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+/* Highlights list */
+.sm-highlights {
+  padding: 0 8px 8px 8px;
+}
+
+.sm-hl {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.sm-hl:hover {
+  background: #141414;
+}
+
+.sm-hl-color {
+  width: 3px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.sm-hl-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.sm-hl-text {
+  color: #d4d4d8;
+  font-size: 12px;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.sm-hl-note {
+  margin-top: 4px;
+  padding: 4px 6px;
+  background: #1a1a1a;
+  border-radius: 4px;
+  color: #71717a;
+  font-size: 11px;
+  font-style: italic;
+}
+
+.sm-hl-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+
+.sm-hl:hover .sm-hl-actions {
+  opacity: 1;
+}
+
+.sm-hl-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: #1f1f1f;
+  border: none;
+  border-radius: 5px;
+  color: #71717a;
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.sm-hl-btn:hover {
+  background: #27272a;
+  color: #fafafa;
+}
+
+.sm-hl-btn.delete:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.sm-hl-btn.goto:hover {
+  background: rgba(250, 204, 21, 0.1);
+  color: #facc15;
+}
