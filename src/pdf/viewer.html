@@ -71,305 +71,404 @@
       background: #27272a;
     }
     
-    #viewer {
-      margin: 20px auto;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 20px;
-      padding-bottom: 40px;
-    }
-    
-    .page-wrapper {
-      background: white;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-      position: relative;
-    }
-    
-    .page-wrapper canvas {
-      display: block;
-    }
-    
-    .text-layer {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      overflow: hidden;
-      opacity: 0.2;
-      line-height: 1.0;
-    }
-    
-    .text-layer > span {
-      color: transparent;
-      position: absolute;
-      white-space: pre;
-      transform-origin: 0% 0%;
-    }
-    
-    .text-layer ::selection {
-      background: rgba(250, 204, 21, 0.4);
-    }
-    
-    /* Highlights in PDF */
-    .pdf-highlight {
-      position: absolute;
-      background: rgba(250, 204, 21, 0.35);
-      border-radius: 2px;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-    
-    .pdf-highlight:hover {
-      background: rgba(250, 204, 21, 0.5);
+    #pdf-frame {
+      width: 100%;
+      height: 100%;
+      border: none;
     }
     
     #loading {
       position: fixed;
       inset: 0;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       background: #1a1a1a;
       color: #fafafa;
       font-size: 14px;
       z-index: 200;
+      gap: 16px;
     }
     
     #loading.hidden { display: none; }
     
     .spinner {
-      width: 24px;
-      height: 24px;
-      border: 2px solid #27272a;
+      width: 32px;
+      height: 32px;
+      border: 3px solid #27272a;
       border-top-color: #facc15;
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
-      margin-right: 12px;
     }
     
     @keyframes spin { to { transform: rotate(360deg); } }
+    
+    #error {
+      display: none;
+      position: fixed;
+      inset: 0;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #1a1a1a;
+      color: #fafafa;
+      text-align: center;
+      padding: 40px;
+      z-index: 200;
+    }
+    
+    #error.show { display: flex; }
+    
+    #error h2 {
+      font-size: 20px;
+      margin-bottom: 12px;
+    }
+    
+    #error p {
+      color: #71717a;
+      font-size: 14px;
+      max-width: 400px;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+    
+    #error button {
+      background: #facc15;
+      border: none;
+      border-radius: 8px;
+      color: #0a0a0a;
+      padding: 12px 24px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    
+    #error button:hover {
+      background: #fbbf24;
+    }
+    
+    /* Highlight overlay styles */
+    .highlight-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+      z-index: 10;
+    }
+    
+    .pdf-highlight {
+      position: absolute;
+      background: rgba(250, 204, 21, 0.35);
+      pointer-events: auto;
+      cursor: pointer;
+      border-radius: 2px;
+    }
+    
+    .pdf-highlight:hover {
+      background: rgba(250, 204, 21, 0.5);
+    }
+    
+    /* Selection capture overlay */
+    #selection-overlay {
+      position: fixed;
+      top: 48px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 50;
+      display: none;
+    }
+    
+    #selection-overlay.active {
+      display: block;
+    }
+    
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 8px;
+      padding: 12px 20px;
+      color: #fafafa;
+      font-size: 13px;
+      z-index: 1000;
+      animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+    
+    /* Instructions overlay */
+    #instructions {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 10px;
+      padding: 14px 20px;
+      color: #a1a1aa;
+      font-size: 13px;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    
+    #instructions .icon {
+      font-size: 20px;
+    }
+    
+    #instructions strong {
+      color: #fafafa;
+    }
+    
+    #instructions .close {
+      background: none;
+      border: none;
+      color: #52525b;
+      cursor: pointer;
+      padding: 4px;
+      margin-left: 8px;
+    }
+    
+    #instructions .close:hover {
+      color: #fafafa;
+    }
   </style>
 </head>
 <body>
   <div id="loading">
     <div class="spinner"></div>
-    Loading PDF...
+    <span>Loading PDF...</span>
+  </div>
+  
+  <div id="error">
+    <h2>😕 Couldn't load PDF</h2>
+    <p id="error-msg">There was a problem loading this PDF. Make sure you have "Allow access to file URLs" enabled for local files.</p>
+    <button onclick="location.reload()">Try Again</button>
   </div>
   
   <div id="toolbar">
     <span class="title" id="pdf-title">PDF Viewer</span>
-    <span id="page-info">Page 1 of 1</span>
-    <button id="zoom-out">−</button>
-    <button id="zoom-in">+</button>
-    <button id="sidebar-btn">
+    <span id="page-info"></span>
+    <button id="highlight-mode" title="Toggle highlight mode">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/>
+        <path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
       </svg>
-      Highlights
+      Highlight Mode
     </button>
   </div>
   
   <div id="viewer-container">
-    <div id="viewer"></div>
+    <iframe id="pdf-frame"></iframe>
+  </div>
+  
+  <div id="instructions">
+    <span class="icon">💡</span>
+    <span><strong>Tip:</strong> Select text in the PDF below, then click "Save Highlight" in the popup</span>
+    <button class="close" id="close-instructions">✕</button>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>
-    // Configure PDF.js worker
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    
     const urlParams = new URLSearchParams(window.location.search);
     const pdfUrl = urlParams.get('file');
     
-    let pdfDoc = null;
-    let scale = 1.2;
-    let currentHighlights = [];
+    const loading = document.getElementById('loading');
+    const error = document.getElementById('error');
+    const errorMsg = document.getElementById('error-msg');
+    const pdfFrame = document.getElementById('pdf-frame');
+    const titleEl = document.getElementById('pdf-title');
     
-    // Load PDF
-    async function loadPdf() {
-      if (!pdfUrl) {
-        document.getElementById('loading').innerHTML = 'No PDF specified';
-        return;
-      }
+    // Close instructions
+    document.getElementById('close-instructions').addEventListener('click', () => {
+      document.getElementById('instructions').style.display = 'none';
+    });
+    
+    // Auto-hide instructions after 10s
+    setTimeout(() => {
+      const inst = document.getElementById('instructions');
+      if (inst) inst.style.display = 'none';
+    }, 10000);
+    
+    if (!pdfUrl) {
+      loading.classList.add('hidden');
+      error.classList.add('show');
+      errorMsg.textContent = 'No PDF URL provided.';
+    } else {
+      // Decode and load PDF
+      const decodedUrl = decodeURIComponent(pdfUrl);
+      const fileName = decodedUrl.split('/').pop().split('?')[0];
+      titleEl.textContent = decodeURIComponent(fileName);
       
-      try {
-        // Decode the URL
-        const decodedUrl = decodeURIComponent(pdfUrl);
-        document.getElementById('pdf-title').textContent = decodedUrl.split('/').pop();
-        
-        pdfDoc = await pdfjsLib.getDocument(decodedUrl).promise;
-        document.getElementById('page-info').textContent = `${pdfDoc.numPages} pages`;
-        
-        // Render all pages
-        const viewer = document.getElementById('viewer');
-        
-        for (let i = 1; i <= pdfDoc.numPages; i++) {
-          await renderPage(i, viewer);
+      // Use Chrome's built-in PDF viewer inside iframe
+      // This allows text selection which we can capture
+      pdfFrame.src = decodedUrl;
+      
+      pdfFrame.onload = () => {
+        loading.classList.add('hidden');
+      };
+      
+      pdfFrame.onerror = () => {
+        loading.classList.add('hidden');
+        error.classList.add('show');
+      };
+      
+      // Fallback - hide loading after 5s regardless
+      setTimeout(() => {
+        loading.classList.add('hidden');
+      }, 5000);
+    }
+    
+    // Listen for text selection in the iframe
+    // Note: This only works if the PDF is from the same origin or if we have proper permissions
+    let checkSelectionInterval;
+    
+    document.getElementById('highlight-mode').addEventListener('click', () => {
+      const btn = document.getElementById('highlight-mode');
+      btn.classList.toggle('active');
+      
+      if (btn.classList.contains('active')) {
+        btn.style.background = '#facc15';
+        btn.style.color = '#0a0a0a';
+        startSelectionCapture();
+        showToast('Highlight mode ON - Select text in the PDF');
+      } else {
+        btn.style.background = '';
+        btn.style.color = '';
+        stopSelectionCapture();
+        showToast('Highlight mode OFF');
+      }
+    });
+    
+    function startSelectionCapture() {
+      checkSelectionInterval = setInterval(() => {
+        try {
+          const iframeDoc = pdfFrame.contentDocument || pdfFrame.contentWindow.document;
+          const selection = iframeDoc.getSelection();
+          
+          if (selection && !selection.isCollapsed) {
+            const text = selection.toString().trim();
+            if (text.length > 2) {
+              // Show save prompt
+              showSavePrompt(text);
+            }
+          }
+        } catch (e) {
+          // Cross-origin - can't access iframe content
+          // This is expected for most PDFs
         }
-        
-        document.getElementById('loading').classList.add('hidden');
-        
-        // Load saved highlights
-        loadHighlights();
-        
-        // Setup selection handling
-        setupSelection();
-        
-      } catch (err) {
-        console.error('Failed to load PDF:', err);
-        document.getElementById('loading').innerHTML = 'Failed to load PDF: ' + err.message;
+      }, 500);
+    }
+    
+    function stopSelectionCapture() {
+      if (checkSelectionInterval) {
+        clearInterval(checkSelectionInterval);
       }
     }
     
-    // Render a page
-    async function renderPage(pageNum, container) {
-      const page = await pdfDoc.getPage(pageNum);
-      const viewport = page.getViewport({ scale });
+    let savePrompt = null;
+    
+    function showSavePrompt(text) {
+      // Remove existing prompt
+      if (savePrompt) savePrompt.remove();
       
-      // Create wrapper
-      const wrapper = document.createElement('div');
-      wrapper.className = 'page-wrapper';
-      wrapper.dataset.page = pageNum;
-      wrapper.style.width = viewport.width + 'px';
-      wrapper.style.height = viewport.height + 'px';
+      savePrompt = document.createElement('div');
+      savePrompt.style.cssText = `
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #18181b;
+        border: 1px solid #27272a;
+        border-radius: 10px;
+        padding: 16px 20px;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        max-width: 400px;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+        animation: fadeIn 0.2s ease;
+      `;
       
-      // Canvas for rendering
-      const canvas = document.createElement('canvas');
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      wrapper.appendChild(canvas);
+      const preview = text.length > 100 ? text.substring(0, 100) + '...' : text;
       
-      // Text layer for selection
-      const textLayer = document.createElement('div');
-      textLayer.className = 'text-layer';
-      wrapper.appendChild(textLayer);
+      savePrompt.innerHTML = `
+        <div style="color: #a1a1aa; font-size: 12px;">Selected text:</div>
+        <div style="color: #fafafa; font-size: 13px; line-height: 1.5; max-height: 80px; overflow: hidden;">${escapeHtml(preview)}</div>
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+          <button id="cancel-hl" style="background: #27272a; border: none; border-radius: 6px; color: #a1a1aa; padding: 8px 14px; font-size: 13px; cursor: pointer;">Cancel</button>
+          <button id="save-hl" style="background: #facc15; border: none; border-radius: 6px; color: #0a0a0a; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer;">Save Highlight</button>
+        </div>
+      `;
       
-      container.appendChild(wrapper);
+      document.body.appendChild(savePrompt);
       
-      // Render page
-      const ctx = canvas.getContext('2d');
-      await page.render({ canvasContext: ctx, viewport }).promise;
-      
-      // Get text content
-      const textContent = await page.getTextContent();
-      
-      // Render text layer
-      for (const item of textContent.items) {
-        const span = document.createElement('span');
-        span.textContent = item.str;
+      document.getElementById('cancel-hl').onclick = () => savePrompt.remove();
+      document.getElementById('save-hl').onclick = () => {
+        saveHighlight(text);
+        savePrompt.remove();
         
-        const tx = pdfjsLib.Util.transform(viewport.transform, item.transform);
-        const fontSize = Math.sqrt(tx[0] * tx[0] + tx[1] * tx[1]);
-        
-        span.style.left = tx[4] + 'px';
-        span.style.top = (viewport.height - tx[5]) + 'px';
-        span.style.fontSize = fontSize + 'px';
-        span.style.fontFamily = item.fontName || 'sans-serif';
-        
-        textLayer.appendChild(span);
-      }
+        // Clear selection in iframe
+        try {
+          const iframeDoc = pdfFrame.contentDocument || pdfFrame.contentWindow.document;
+          iframeDoc.getSelection().removeAllRanges();
+        } catch (e) {}
+      };
     }
     
-    // Setup text selection for highlighting
-    function setupSelection() {
-      document.addEventListener('mouseup', (e) => {
-        const selection = window.getSelection();
-        if (!selection || selection.isCollapsed) return;
-        
-        const text = selection.toString().trim();
-        if (text.length < 2) return;
-        
-        // Get the page number
-        const range = selection.getRangeAt(0);
-        const pageWrapper = range.startContainer.parentElement?.closest('.page-wrapper');
-        const pageNum = pageWrapper ? parseInt(pageWrapper.dataset.page) : 1;
-        
-        // Save highlight
-        saveHighlight(text, pageNum);
-        
-        selection.removeAllRanges();
-      });
-    }
-    
-    // Save highlight
-    function saveHighlight(text, pageNum) {
+    function saveHighlight(text) {
       const highlight = {
         id: 'hl_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-        text,
+        text: text,
         color: '#facc15',
         note: '',
-        pageNum,
         pageId: pdfUrl,
-        pageTitle: document.getElementById('pdf-title').textContent,
+        pageTitle: titleEl.textContent,
         url: window.location.href,
         favicon: '',
         createdAt: Date.now(),
         isPdf: true
       };
       
-      // Send to storage via parent window or background
       chrome.storage.local.get(['site_memory_data'], (result) => {
         const data = result.site_memory_data || { highlights: [] };
         data.highlights.push(highlight);
         chrome.storage.local.set({ site_memory_data: data }, () => {
-          console.log('Highlight saved');
-          currentHighlights.push(highlight);
-          showToast('Highlight saved');
+          showToast('✓ Highlight saved!');
         });
       });
     }
     
-    // Load highlights for this PDF
-    function loadHighlights() {
-      chrome.storage.local.get(['site_memory_data'], (result) => {
-        const data = result.site_memory_data || { highlights: [] };
-        currentHighlights = data.highlights.filter(h => h.pageId === pdfUrl);
-        console.log('Loaded', currentHighlights.length, 'highlights');
-      });
-    }
-    
-    // Show toast
     function showToast(msg) {
+      const existing = document.querySelector('.toast');
+      if (existing) existing.remove();
+      
       const toast = document.createElement('div');
-      toast.style.cssText = `
-        position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-        background: #18181b; border: 1px solid #27272a; border-radius: 8px;
-        padding: 10px 16px; color: #fafafa; font-size: 13px; z-index: 1000;
-      `;
+      toast.className = 'toast';
       toast.textContent = msg;
       document.body.appendChild(toast);
-      setTimeout(() => toast.remove(), 2000);
+      
+      setTimeout(() => toast.remove(), 2500);
     }
     
-    // Zoom controls
-    document.getElementById('zoom-in').addEventListener('click', () => {
-      scale += 0.2;
-      rerender();
-    });
-    
-    document.getElementById('zoom-out').addEventListener('click', () => {
-      scale = Math.max(0.5, scale - 0.2);
-      rerender();
-    });
-    
-    async function rerender() {
-      const viewer = document.getElementById('viewer');
-      viewer.innerHTML = '';
-      for (let i = 1; i <= pdfDoc.numPages; i++) {
-        await renderPage(i, viewer);
-      }
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
     }
-    
-    // Sidebar button - communicate with extension
-    document.getElementById('sidebar-btn').addEventListener('click', () => {
-      // Try to toggle sidebar
-      chrome.runtime.sendMessage({ action: 'toggleSidebar' });
-    });
-    
-    // Initialize
-    loadPdf();
   </script>
 </body>
 </html>

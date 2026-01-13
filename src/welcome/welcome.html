@@ -192,6 +192,14 @@
       line-height: 1.5;
     }
     
+    .step-text code {
+      background: #27272a;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: monospace;
+    }
+    
     .btn {
       display: inline-flex;
       align-items: center;
@@ -270,6 +278,48 @@
       border-radius: 4px;
       font-weight: 500;
     }
+    
+    .url-box {
+      background: #0a0a0a;
+      border: 1px solid #27272a;
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-top: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .url-box input {
+      flex: 1;
+      background: none;
+      border: none;
+      color: #facc15;
+      font-family: monospace;
+      font-size: 13px;
+      outline: none;
+    }
+    
+    .url-box button {
+      background: #27272a;
+      border: none;
+      border-radius: 6px;
+      color: #a1a1aa;
+      padding: 8px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    
+    .url-box button:hover {
+      background: #3f3f46;
+      color: #fafafa;
+    }
+    
+    .url-box button.copied {
+      background: rgba(74, 222, 128, 0.2);
+      color: #4ade80;
+    }
   </style>
 </head>
 <body>
@@ -329,13 +379,13 @@
       </div>
       
       <p style="color: #a1a1aa; font-size: 13px; margin-bottom: 16px; line-height: 1.6;">
-        To highlight PDFs saved on your computer, you need to enable file access. Online PDFs work automatically.
+        To highlight PDFs saved on your computer, enable file access. Online PDFs work automatically.
       </p>
       
       <div class="steps">
         <div class="step">
           <span class="step-num">1</span>
-          <span class="step-text">Click the button below to open extension settings</span>
+          <span class="step-text">Copy the URL below and paste it in a new tab</span>
         </div>
         <div class="step">
           <span class="step-num">2</span>
@@ -347,14 +397,10 @@
         </div>
       </div>
       
-      <button class="btn" id="openSettings">
-        Open Extension Settings
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-          <polyline points="15 3 21 3 21 9"/>
-          <line x1="10" y1="14" x2="21" y2="3"/>
-        </svg>
-      </button>
+      <div class="url-box">
+        <input type="text" id="extUrl" readonly>
+        <button id="copyUrl">Copy</button>
+      </div>
     </div>
     
     <div class="card done-section">
@@ -370,10 +416,32 @@
   </div>
   
   <script>
-    document.getElementById('openSettings').addEventListener('click', () => {
-      chrome.tabs.create({
-        url: `chrome://extensions/?id=${chrome.runtime.id}`
-      });
+    // Set the extension URL
+    const extUrl = `chrome://extensions/?id=${chrome.runtime.id}`;
+    document.getElementById('extUrl').value = extUrl;
+    
+    // Copy URL button
+    document.getElementById('copyUrl').addEventListener('click', async () => {
+      const btn = document.getElementById('copyUrl');
+      try {
+        await navigator.clipboard.writeText(extUrl);
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'Copy';
+          btn.classList.remove('copied');
+        }, 2000);
+      } catch (e) {
+        // Fallback
+        document.getElementById('extUrl').select();
+        document.execCommand('copy');
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'Copy';
+          btn.classList.remove('copied');
+        }, 2000);
+      }
     });
     
     document.getElementById('closeTab').addEventListener('click', () => {
