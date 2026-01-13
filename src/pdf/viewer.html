@@ -7,468 +7,224 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     
     body {
-      background: #1a1a1a;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-      overflow: hidden;
-    }
-    
-    #toolbar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 48px;
       background: #0a0a0a;
-      border-bottom: 1px solid #27272a;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
       display: flex;
       align-items: center;
-      padding: 0 16px;
-      z-index: 100;
-      gap: 12px;
+      justify-content: center;
+      padding: 40px;
     }
     
-    #toolbar .title {
+    .container {
+      max-width: 500px;
+      text-align: center;
+    }
+    
+    .icon {
+      font-size: 64px;
+      margin-bottom: 24px;
+    }
+    
+    h1 {
+      color: #fafafa;
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    
+    .subtitle {
+      color: #71717a;
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+    
+    .pdf-name {
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-align: left;
+    }
+    
+    .pdf-name .file-icon {
+      font-size: 28px;
+    }
+    
+    .pdf-name .file-info {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .pdf-name .name {
       color: #fafafa;
       font-size: 14px;
       font-weight: 500;
-      flex: 1;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     
-    #toolbar button {
-      background: #27272a;
-      border: none;
-      border-radius: 6px;
-      color: #a1a1aa;
-      padding: 8px 12px;
-      font-size: 13px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.15s;
+    .pdf-name .path {
+      color: #52525b;
+      font-size: 11px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     
-    #toolbar button:hover {
-      background: #3f3f46;
-      color: #fafafa;
-    }
-    
-    #page-info {
-      color: #71717a;
-      font-size: 13px;
-    }
-    
-    #viewer-container {
-      position: fixed;
-      top: 48px;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      overflow: auto;
-      background: #27272a;
-    }
-    
-    #pdf-frame {
-      width: 100%;
-      height: 100%;
-      border: none;
-    }
-    
-    #loading {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
+    .btn {
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      background: #1a1a1a;
-      color: #fafafa;
-      font-size: 14px;
-      z-index: 200;
-      gap: 16px;
-    }
-    
-    #loading.hidden { display: none; }
-    
-    .spinner {
-      width: 32px;
-      height: 32px;
-      border: 3px solid #27272a;
-      border-top-color: #facc15;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-    
-    @keyframes spin { to { transform: rotate(360deg); } }
-    
-    #error {
-      display: none;
-      position: fixed;
-      inset: 0;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: #1a1a1a;
-      color: #fafafa;
-      text-align: center;
-      padding: 40px;
-      z-index: 200;
-    }
-    
-    #error.show { display: flex; }
-    
-    #error h2 {
-      font-size: 20px;
-      margin-bottom: 12px;
-    }
-    
-    #error p {
-      color: #71717a;
-      font-size: 14px;
-      max-width: 400px;
-      line-height: 1.6;
-      margin-bottom: 20px;
-    }
-    
-    #error button {
+      gap: 8px;
+      padding: 14px 28px;
       background: #facc15;
-      border: none;
-      border-radius: 8px;
       color: #0a0a0a;
-      padding: 12px 24px;
+      border: none;
+      border-radius: 10px;
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
+      transition: all 0.15s;
+      text-decoration: none;
+      width: 100%;
+      margin-bottom: 12px;
     }
     
-    #error button:hover {
+    .btn:hover {
       background: #fbbf24;
+      transform: translateY(-1px);
     }
     
-    /* Highlight overlay styles */
-    .highlight-layer {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      pointer-events: none;
-      z-index: 10;
-    }
-    
-    .pdf-highlight {
-      position: absolute;
-      background: rgba(250, 204, 21, 0.35);
-      pointer-events: auto;
-      cursor: pointer;
-      border-radius: 2px;
-    }
-    
-    .pdf-highlight:hover {
-      background: rgba(250, 204, 21, 0.5);
-    }
-    
-    /* Selection capture overlay */
-    #selection-overlay {
-      position: fixed;
-      top: 48px;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      z-index: 50;
-      display: none;
-    }
-    
-    #selection-overlay.active {
-      display: block;
-    }
-    
-    /* Toast */
-    .toast {
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #18181b;
-      border: 1px solid #27272a;
-      border-radius: 8px;
-      padding: 12px 20px;
+    .btn-secondary {
+      background: #27272a;
       color: #fafafa;
-      font-size: 13px;
-      z-index: 1000;
-      animation: fadeIn 0.3s ease;
     }
     
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateX(-50%) translateY(10px); }
-      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .btn-secondary:hover {
+      background: #3f3f46;
+      transform: translateY(-1px);
     }
     
-    /* Instructions overlay */
-    #instructions {
-      position: fixed;
-      bottom: 80px;
-      left: 50%;
-      transform: translateX(-50%);
+    .instructions {
       background: #18181b;
       border: 1px solid #27272a;
-      border-radius: 10px;
-      padding: 14px 20px;
-      color: #a1a1aa;
-      font-size: 13px;
-      z-index: 100;
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 32px;
+      text-align: left;
+    }
+    
+    .instructions h3 {
+      color: #fafafa;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 16px;
       display: flex;
       align-items: center;
-      gap: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      gap: 8px;
     }
     
-    #instructions .icon {
-      font-size: 20px;
+    .instructions ol {
+      color: #a1a1aa;
+      font-size: 13px;
+      line-height: 1.8;
+      padding-left: 20px;
     }
     
-    #instructions strong {
-      color: #fafafa;
+    .instructions li {
+      margin-bottom: 8px;
     }
     
-    #instructions .close {
-      background: none;
-      border: none;
-      color: #52525b;
-      cursor: pointer;
-      padding: 4px;
-      margin-left: 8px;
+    .instructions strong {
+      color: #facc15;
     }
     
-    #instructions .close:hover {
-      color: #fafafa;
+    .note {
+      margin-top: 24px;
+      padding: 14px 16px;
+      background: rgba(250, 204, 21, 0.08);
+      border: 1px solid rgba(250, 204, 21, 0.2);
+      border-radius: 8px;
+      color: #a1a1aa;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    
+    .note strong {
+      color: #facc15;
     }
   </style>
 </head>
 <body>
-  <div id="loading">
-    <div class="spinner"></div>
-    <span>Loading PDF...</span>
-  </div>
-  
-  <div id="error">
-    <h2>😕 Couldn't load PDF</h2>
-    <p id="error-msg">There was a problem loading this PDF. Make sure you have "Allow access to file URLs" enabled for local files.</p>
-    <button onclick="location.reload()">Try Again</button>
-  </div>
-  
-  <div id="toolbar">
-    <span class="title" id="pdf-title">PDF Viewer</span>
-    <span id="page-info"></span>
-    <button id="highlight-mode" title="Toggle highlight mode">
+  <div class="container">
+    <div class="icon">📄</div>
+    <h1>PDF Highlighting</h1>
+    <p class="subtitle">Site Memory works best with PDFs opened directly in Chrome</p>
+    
+    <div class="pdf-name">
+      <span class="file-icon">📎</span>
+      <div class="file-info">
+        <div class="name" id="fileName">Loading...</div>
+        <div class="path" id="filePath"></div>
+      </div>
+    </div>
+    
+    <button class="btn" id="openDirect">
+      Open PDF Directly
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+        <polyline points="15 3 21 3 21 9"/>
+        <line x1="10" y1="14" x2="21" y2="3"/>
       </svg>
-      Highlight Mode
     </button>
-  </div>
-  
-  <div id="viewer-container">
-    <iframe id="pdf-frame"></iframe>
-  </div>
-  
-  <div id="instructions">
-    <span class="icon">💡</span>
-    <span><strong>Tip:</strong> Select text in the PDF below, then click "Save Highlight" in the popup</span>
-    <button class="close" id="close-instructions">✕</button>
+    
+    <button class="btn btn-secondary" id="goBack">← Go Back</button>
+    
+    <div class="instructions">
+      <h3>💡 How to highlight PDFs</h3>
+      <ol>
+        <li>Click <strong>"Open PDF Directly"</strong> above</li>
+        <li>Select any text in the PDF</li>
+        <li>The highlight popup will appear automatically</li>
+        <li>Press <strong>Ctrl+Shift+S</strong> to see all your highlights</li>
+      </ol>
+    </div>
+    
+    <div class="note">
+      <strong>Note:</strong> For local PDFs, make sure you've enabled "Allow access to file URLs" in extension settings.
+    </div>
   </div>
 
   <script>
     const urlParams = new URLSearchParams(window.location.search);
     const pdfUrl = urlParams.get('file');
     
-    const loading = document.getElementById('loading');
-    const error = document.getElementById('error');
-    const errorMsg = document.getElementById('error-msg');
-    const pdfFrame = document.getElementById('pdf-frame');
-    const titleEl = document.getElementById('pdf-title');
-    
-    // Close instructions
-    document.getElementById('close-instructions').addEventListener('click', () => {
-      document.getElementById('instructions').style.display = 'none';
-    });
-    
-    // Auto-hide instructions after 10s
-    setTimeout(() => {
-      const inst = document.getElementById('instructions');
-      if (inst) inst.style.display = 'none';
-    }, 10000);
-    
-    if (!pdfUrl) {
-      loading.classList.add('hidden');
-      error.classList.add('show');
-      errorMsg.textContent = 'No PDF URL provided.';
-    } else {
-      // Decode and load PDF
+    if (pdfUrl) {
       const decodedUrl = decodeURIComponent(pdfUrl);
       const fileName = decodedUrl.split('/').pop().split('?')[0];
-      titleEl.textContent = decodeURIComponent(fileName);
       
-      // Use Chrome's built-in PDF viewer inside iframe
-      // This allows text selection which we can capture
-      pdfFrame.src = decodedUrl;
+      document.getElementById('fileName').textContent = decodeURIComponent(fileName);
+      document.getElementById('filePath').textContent = decodedUrl;
       
-      pdfFrame.onload = () => {
-        loading.classList.add('hidden');
-      };
-      
-      pdfFrame.onerror = () => {
-        loading.classList.add('hidden');
-        error.classList.add('show');
-      };
-      
-      // Fallback - hide loading after 5s regardless
-      setTimeout(() => {
-        loading.classList.add('hidden');
-      }, 5000);
-    }
-    
-    // Listen for text selection in the iframe
-    // Note: This only works if the PDF is from the same origin or if we have proper permissions
-    let checkSelectionInterval;
-    
-    document.getElementById('highlight-mode').addEventListener('click', () => {
-      const btn = document.getElementById('highlight-mode');
-      btn.classList.toggle('active');
-      
-      if (btn.classList.contains('active')) {
-        btn.style.background = '#facc15';
-        btn.style.color = '#0a0a0a';
-        startSelectionCapture();
-        showToast('Highlight mode ON - Select text in the PDF');
-      } else {
-        btn.style.background = '';
-        btn.style.color = '';
-        stopSelectionCapture();
-        showToast('Highlight mode OFF');
-      }
-    });
-    
-    function startSelectionCapture() {
-      checkSelectionInterval = setInterval(() => {
-        try {
-          const iframeDoc = pdfFrame.contentDocument || pdfFrame.contentWindow.document;
-          const selection = iframeDoc.getSelection();
-          
-          if (selection && !selection.isCollapsed) {
-            const text = selection.toString().trim();
-            if (text.length > 2) {
-              // Show save prompt
-              showSavePrompt(text);
-            }
-          }
-        } catch (e) {
-          // Cross-origin - can't access iframe content
-          // This is expected for most PDFs
-        }
-      }, 500);
-    }
-    
-    function stopSelectionCapture() {
-      if (checkSelectionInterval) {
-        clearInterval(checkSelectionInterval);
-      }
-    }
-    
-    let savePrompt = null;
-    
-    function showSavePrompt(text) {
-      // Remove existing prompt
-      if (savePrompt) savePrompt.remove();
-      
-      savePrompt = document.createElement('div');
-      savePrompt.style.cssText = `
-        position: fixed;
-        bottom: 24px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: #18181b;
-        border: 1px solid #27272a;
-        border-radius: 10px;
-        padding: 16px 20px;
-        z-index: 1000;
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        max-width: 400px;
-        box-shadow: 0 8px 30px rgba(0,0,0,0.4);
-        animation: fadeIn 0.2s ease;
-      `;
-      
-      const preview = text.length > 100 ? text.substring(0, 100) + '...' : text;
-      
-      savePrompt.innerHTML = `
-        <div style="color: #a1a1aa; font-size: 12px;">Selected text:</div>
-        <div style="color: #fafafa; font-size: 13px; line-height: 1.5; max-height: 80px; overflow: hidden;">${escapeHtml(preview)}</div>
-        <div style="display: flex; gap: 8px; justify-content: flex-end;">
-          <button id="cancel-hl" style="background: #27272a; border: none; border-radius: 6px; color: #a1a1aa; padding: 8px 14px; font-size: 13px; cursor: pointer;">Cancel</button>
-          <button id="save-hl" style="background: #facc15; border: none; border-radius: 6px; color: #0a0a0a; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer;">Save Highlight</button>
-        </div>
-      `;
-      
-      document.body.appendChild(savePrompt);
-      
-      document.getElementById('cancel-hl').onclick = () => savePrompt.remove();
-      document.getElementById('save-hl').onclick = () => {
-        saveHighlight(text);
-        savePrompt.remove();
-        
-        // Clear selection in iframe
-        try {
-          const iframeDoc = pdfFrame.contentDocument || pdfFrame.contentWindow.document;
-          iframeDoc.getSelection().removeAllRanges();
-        } catch (e) {}
-      };
-    }
-    
-    function saveHighlight(text) {
-      const highlight = {
-        id: 'hl_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-        text: text,
-        color: '#facc15',
-        note: '',
-        pageId: pdfUrl,
-        pageTitle: titleEl.textContent,
-        url: window.location.href,
-        favicon: '',
-        createdAt: Date.now(),
-        isPdf: true
-      };
-      
-      chrome.storage.local.get(['site_memory_data'], (result) => {
-        const data = result.site_memory_data || { highlights: [] };
-        data.highlights.push(highlight);
-        chrome.storage.local.set({ site_memory_data: data }, () => {
-          showToast('✓ Highlight saved!');
-        });
+      document.getElementById('openDirect').addEventListener('click', () => {
+        // Open the PDF directly in a new tab - Chrome's native viewer will handle it
+        window.open(decodedUrl, '_blank');
       });
+    } else {
+      document.getElementById('fileName').textContent = 'No PDF specified';
+      document.getElementById('openDirect').style.display = 'none';
     }
     
-    function showToast(msg) {
-      const existing = document.querySelector('.toast');
-      if (existing) existing.remove();
-      
-      const toast = document.createElement('div');
-      toast.className = 'toast';
-      toast.textContent = msg;
-      document.body.appendChild(toast);
-      
-      setTimeout(() => toast.remove(), 2500);
-    }
-    
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    }
+    document.getElementById('goBack').addEventListener('click', () => {
+      window.history.back();
+    });
   </script>
 </body>
 </html>
