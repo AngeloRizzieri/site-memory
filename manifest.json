@@ -57,7 +57,7 @@
   },
   
   "web_accessible_resources": [{
-    "resources": ["src/pdf/viewer.html", "src/welcome/welcome.html"],
-    "matches": ["<all_urls>", "file://*/*"]
+    "resources": ["src/pdf/*", "src/welcome/welcome.html"],
+    "matches": ["<all_urls>"]
   }]
 }

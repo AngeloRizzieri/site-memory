@@ -2,67 +2,35 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>PDF Viewer - Site Memory</title>
+  <title>Site Memory - PDF Viewer</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     
     body {
-      background: #0a0a0a;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: #0f0f0f;
+      color: #fafafa;
       min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 40px;
     }
     
-    .container {
-      max-width: 500px;
-      text-align: center;
-    }
-    
-    .icon {
-      font-size: 64px;
-      margin-bottom: 24px;
-    }
-    
-    h1 {
-      color: #fafafa;
-      font-size: 24px;
-      font-weight: 600;
-      margin-bottom: 12px;
-    }
-    
-    .subtitle {
-      color: #71717a;
-      font-size: 14px;
-      line-height: 1.6;
-      margin-bottom: 32px;
-    }
-    
-    .pdf-name {
+    /* Toolbar */
+    .toolbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 52px;
       background: #18181b;
-      border: 1px solid #27272a;
-      border-radius: 10px;
-      padding: 16px 20px;
-      margin-bottom: 24px;
+      border-bottom: 1px solid #27272a;
       display: flex;
       align-items: center;
+      padding: 0 16px;
       gap: 12px;
-      text-align: left;
+      z-index: 100;
     }
     
-    .pdf-name .file-icon {
-      font-size: 28px;
-    }
-    
-    .pdf-name .file-info {
+    .toolbar-title {
       flex: 1;
-      min-width: 0;
-    }
-    
-    .pdf-name .name {
-      color: #fafafa;
       font-size: 14px;
       font-weight: 500;
       white-space: nowrap;
@@ -70,161 +38,276 @@
       text-overflow: ellipsis;
     }
     
-    .pdf-name .path {
-      color: #52525b;
-      font-size: 11px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    
-    .btn {
-      display: inline-flex;
+    .toolbar-btn {
+      display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 14px 28px;
-      background: #facc15;
-      color: #0a0a0a;
+      gap: 6px;
+      padding: 8px 14px;
+      background: #27272a;
       border: none;
-      border-radius: 10px;
-      font-size: 14px;
-      font-weight: 600;
+      border-radius: 6px;
+      color: #a1a1aa;
+      font-size: 13px;
+      font-family: inherit;
       cursor: pointer;
       transition: all 0.15s;
-      text-decoration: none;
-      width: 100%;
-      margin-bottom: 12px;
     }
     
-    .btn:hover {
-      background: #fbbf24;
-      transform: translateY(-1px);
-    }
-    
-    .btn-secondary {
-      background: #27272a;
-      color: #fafafa;
-    }
-    
-    .btn-secondary:hover {
+    .toolbar-btn:hover {
       background: #3f3f46;
-      transform: translateY(-1px);
-    }
-    
-    .instructions {
-      background: #18181b;
-      border: 1px solid #27272a;
-      border-radius: 12px;
-      padding: 20px;
-      margin-top: 32px;
-      text-align: left;
-    }
-    
-    .instructions h3 {
       color: #fafafa;
-      font-size: 14px;
-      font-weight: 600;
-      margin-bottom: 16px;
+    }
+    
+    .toolbar-btn.primary {
+      background: #facc15;
+      color: #0a0a0a;
+    }
+    
+    .toolbar-btn.primary:hover {
+      background: #fbbf24;
+    }
+    
+    .page-nav {
       display: flex;
       align-items: center;
       gap: 8px;
-    }
-    
-    .instructions ol {
-      color: #a1a1aa;
+      color: #71717a;
       font-size: 13px;
-      line-height: 1.8;
-      padding-left: 20px;
     }
     
-    .instructions li {
+    .page-nav input {
+      width: 50px;
+      padding: 6px 8px;
+      background: #0a0a0a;
+      border: 1px solid #27272a;
+      border-radius: 4px;
+      color: #fafafa;
+      font-size: 13px;
+      text-align: center;
+    }
+    
+    /* Viewer container */
+    .viewer-container {
+      padding-top: 52px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #27272a;
+    }
+    
+    /* Page container */
+    .page-container {
+      margin: 20px auto;
+      background: white;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      position: relative;
+    }
+    
+    .page-container canvas {
+      display: block;
+    }
+    
+    /* Text layer for selection */
+    .text-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      overflow: hidden;
+      line-height: 1.0;
+      pointer-events: auto;
+    }
+    
+    .text-layer > span {
+      color: transparent;
+      position: absolute;
+      white-space: pre;
+      cursor: text;
+      transform-origin: 0% 0%;
+    }
+    
+    .text-layer ::selection {
+      background: rgba(250, 204, 21, 0.4);
+    }
+    
+    /* Loading state */
+    .loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: calc(100vh - 52px);
+      gap: 16px;
+    }
+    
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid #27272a;
+      border-top-color: #facc15;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    
+    @keyframes spin { to { transform: rotate(360deg); } }
+    
+    .loading-text {
+      color: #71717a;
+      font-size: 14px;
+    }
+    
+    /* Error state */
+    .error {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: calc(100vh - 52px);
+      padding: 40px;
+      text-align: center;
+    }
+    
+    .error-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+    
+    .error h2 {
+      font-size: 20px;
       margin-bottom: 8px;
     }
     
-    .instructions strong {
-      color: #facc15;
-    }
-    
-    .note {
-      margin-top: 24px;
-      padding: 14px 16px;
-      background: rgba(250, 204, 21, 0.08);
-      border: 1px solid rgba(250, 204, 21, 0.2);
-      border-radius: 8px;
-      color: #a1a1aa;
-      font-size: 12px;
+    .error p {
+      color: #71717a;
+      font-size: 14px;
+      max-width: 400px;
       line-height: 1.6;
+      margin-bottom: 20px;
     }
     
-    .note strong {
-      color: #facc15;
+    /* Highlight popup */
+    .hl-popup {
+      position: fixed;
+      z-index: 1000;
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 10px;
+      padding: 8px;
+      display: none;
+      gap: 6px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.4);
     }
+    
+    .hl-popup.visible {
+      display: flex;
+    }
+    
+    .hl-popup .color-btn {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.1s;
+    }
+    
+    .hl-popup .color-btn:hover {
+      transform: scale(1.15);
+    }
+    
+    .hl-popup .color-btn.active {
+      border-color: white;
+    }
+    
+    .hl-popup .action-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      background: #27272a;
+      border: none;
+      border-radius: 6px;
+      color: #a1a1aa;
+      cursor: pointer;
+      margin-left: 4px;
+    }
+    
+    .hl-popup .action-btn:hover {
+      background: #3f3f46;
+      color: #fafafa;
+    }
+    
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 8px;
+      padding: 12px 20px;
+      color: #fafafa;
+      font-size: 13px;
+      z-index: 1001;
+      animation: toastIn 0.3s ease;
+    }
+    
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+    
+    /* Hidden */
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="icon">📄</div>
-    <h1>PDF Highlighting</h1>
-    <p class="subtitle">Site Memory works best with PDFs opened directly in Chrome</p>
-    
-    <div class="pdf-name">
-      <span class="file-icon">📎</span>
-      <div class="file-info">
-        <div class="name" id="fileName">Loading...</div>
-        <div class="path" id="filePath"></div>
-      </div>
+  <div class="toolbar">
+    <span class="toolbar-title" id="title">Loading PDF...</span>
+    <div class="page-nav">
+      <button class="toolbar-btn" id="prevPage">←</button>
+      <input type="number" id="pageNum" value="1" min="1">
+      <span>/ <span id="totalPages">1</span></span>
+      <button class="toolbar-btn" id="nextPage">→</button>
     </div>
-    
-    <button class="btn" id="openDirect">
-      Open PDF Directly
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-        <polyline points="15 3 21 3 21 9"/>
-        <line x1="10" y1="14" x2="21" y2="3"/>
-      </svg>
-    </button>
-    
-    <button class="btn btn-secondary" id="goBack">← Go Back</button>
-    
-    <div class="instructions">
-      <h3>💡 How to highlight PDFs</h3>
-      <ol>
-        <li>Click <strong>"Open PDF Directly"</strong> above</li>
-        <li>Select any text in the PDF</li>
-        <li>The highlight popup will appear automatically</li>
-        <li>Press <strong>Ctrl+Shift+S</strong> to see all your highlights</li>
-      </ol>
-    </div>
-    
-    <div class="note">
-      <strong>Note:</strong> For local PDFs, make sure you've enabled "Allow access to file URLs" in extension settings.
+    <button class="toolbar-btn" id="zoomOut">−</button>
+    <button class="toolbar-btn" id="zoomIn">+</button>
+  </div>
+  
+  <div class="viewer-container" id="viewer">
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <span class="loading-text">Loading PDF...</span>
     </div>
   </div>
+  
+  <div class="error hidden" id="error">
+    <span class="error-icon">😕</span>
+    <h2>Couldn't load PDF</h2>
+    <p id="errorMsg">There was a problem loading this PDF.</p>
+    <button class="toolbar-btn primary" onclick="location.reload()">Try Again</button>
+  </div>
+  
+  <!-- Highlight popup -->
+  <div class="hl-popup" id="hlPopup">
+    <button class="color-btn active" data-color="#facc15" style="background:#facc15"></button>
+    <button class="color-btn" data-color="#4ade80" style="background:#4ade80"></button>
+    <button class="color-btn" data-color="#60a5fa" style="background:#60a5fa"></button>
+    <button class="color-btn" data-color="#f472b6" style="background:#f472b6"></button>
+    <button class="color-btn" data-color="#c084fc" style="background:#c084fc"></button>
+    <button class="action-btn" id="saveHighlight" title="Save">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+    </button>
+  </div>
 
-  <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const pdfUrl = urlParams.get('file');
-    
-    if (pdfUrl) {
-      const decodedUrl = decodeURIComponent(pdfUrl);
-      const fileName = decodedUrl.split('/').pop().split('?')[0];
-      
-      document.getElementById('fileName').textContent = decodeURIComponent(fileName);
-      document.getElementById('filePath').textContent = decodedUrl;
-      
-      document.getElementById('openDirect').addEventListener('click', () => {
-        // Open the PDF directly in a new tab - Chrome's native viewer will handle it
-        window.open(decodedUrl, '_blank');
-      });
-    } else {
-      document.getElementById('fileName').textContent = 'No PDF specified';
-      document.getElementById('openDirect').style.display = 'none';
-    }
-    
-    document.getElementById('goBack').addEventListener('click', () => {
-      window.history.back();
-    });
-  </script>
+  <!-- Load PDF.js from extension's local files -->
+  <script src="pdf.min.js"></script>
+  <script src="viewer-script.js"></script>
 </body>
 </html>
