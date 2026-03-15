@@ -30,7 +30,20 @@ const Highlighter = {
       <div class="sm-popup-colors">
         ${this.colors.map(c => `<button class="sm-color" data-color="${c}" style="background:${c}"></button>`).join('')}
       </div>
-      <div class="sm-popup-divider"></div>
+      <div class="sm-popup-sep"></div>
+      <button class="sm-popup-note" title="Add note">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+      </button>
+      <button class="sm-popup-sidebar" title="Open sidebar">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <path d="M9 3v18"/>
+        </svg>
+      </button>
+      <div class="sm-popup-del-sep"></div>
       <button class="sm-popup-del" title="Remove">
         <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
@@ -52,6 +65,20 @@ const Highlighter = {
           this._schedulePopupDismiss();
         }
       });
+    });
+
+    this.popup.querySelector('.sm-popup-note').addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (this.currentHighlightId) {
+        this.hidePopup();
+        this.showNoteModal(this.currentHighlightId);
+      }
+    });
+
+    this.popup.querySelector('.sm-popup-sidebar').addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.hidePopup();
+      window.Sidebar?.toggle();
     });
 
     this.popup.querySelector('.sm-popup-del').addEventListener('click', (e) => {
@@ -151,6 +178,25 @@ const Highlighter = {
 
     chrome.runtime.onMessage.addListener((msg) => {
       if (msg.action === 'toggleSidebar') window.Sidebar?.toggle();
+
+      if (msg.action === 'saveImage' && msg.src) {
+        const filename = decodeURIComponent(msg.src.split('/').pop().split('?')[0]) || 'Image';
+        const id = Helpers.generateId();
+        Storage.addHighlight({
+          id,
+          text: filename,
+          color: '#a1a1aa',
+          note: msg.src,
+          isImage: true,
+          imageSrc: msg.src,
+          pageId: Helpers.getPageId(),
+          pageTitle: Helpers.getPageTitle(),
+          url: window.location.href,
+          favicon: Helpers.getFavicon(),
+          createdAt: Date.now()
+        }).then(() => window.Sidebar?.refresh());
+      }
+
       if (msg.action === 'highlightSelection') {
         const sel = window.getSelection();
         const hasLive = sel && !sel.isCollapsed && sel.toString().trim().length >= 2;

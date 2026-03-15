@@ -58,9 +58,18 @@ const Sidebar = {
 
   toggle() { this.isOpen ? this.close() : this.open(); },
 
+  getPageBackground() {
+    const tryBg = (el) => {
+      const c = window.getComputedStyle(el).backgroundColor;
+      return (c && c !== 'transparent' && c !== 'rgba(0, 0, 0, 0)') ? c : null;
+    };
+    return tryBg(document.body) || tryBg(document.documentElement) || '#ffffff';
+  },
+
   open() {
     this.isOpen = true;
     this.container.classList.add('open');
+    this.container.querySelector('.sm-panel').style.setProperty('--sm-bg', this.getPageBackground());
     this.refresh();
   },
 
