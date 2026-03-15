@@ -336,10 +336,11 @@ const Sidebar = {
       });
     });
 
-    // Click highlight row → note modal
+    // Click highlight row → scroll to it and show popup bubble
     content.querySelectorAll('.sm-hl-row').forEach(el => {
-      el.addEventListener('click', () => {
-        Highlighter.showNoteModal(el.dataset.id);
+      el.addEventListener('click', (e) => {
+        if (e.target.closest('.sm-hl-action')) return;
+        Highlighter.scrollToAndShowPopup(el.dataset.id);
       });
     });
   }

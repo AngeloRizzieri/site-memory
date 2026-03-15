@@ -508,11 +508,11 @@
 .sm-note-dialog {
   position: relative;
   width: 320px;
-  background: #18181b;
-  border: 1px solid #27272a;
+  background: #ffffff;
+  border: 1px solid rgba(0,0,0,0.1);
   border-radius: 12px;
   padding: 16px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
   transform: scale(0.95);
   transition: transform 0.2s ease;
 }
@@ -524,17 +524,17 @@
 .sm-note-header {
   font-size: 13px;
   font-weight: 600;
-  color: #fafafa;
+  color: #111827;
   margin-bottom: 12px;
 }
 
 .sm-note-input {
   width: 100%;
-  background: #0a0a0a;
-  border: 1px solid #27272a;
+  background: #f9fafb;
+  border: 1px solid rgba(0,0,0,0.1);
   border-radius: 8px;
   padding: 10px 12px;
-  color: #fafafa;
+  color: #111827;
   font-size: 13px;
   font-family: inherit;
   line-height: 1.5;
@@ -543,8 +543,8 @@
   transition: border-color 0.15s ease;
 }
 
-.sm-note-input:focus { border-color: #facc15; }
-.sm-note-input::placeholder { color: #52525b; }
+.sm-note-input:focus { border-color: rgba(0,0,0,0.3); }
+.sm-note-input::placeholder { color: #9ca3af; }
 
 .sm-note-actions {
   display: flex;
@@ -565,13 +565,13 @@
 
 .sm-note-btn.cancel {
   background: transparent;
-  border: 1px solid #27272a;
-  color: #a1a1aa;
+  border: 1px solid rgba(0,0,0,0.12);
+  color: #6b7280;
 }
 
 .sm-note-btn.cancel:hover {
-  background: #27272a;
-  color: #fafafa;
+  background: rgba(0,0,0,0.05);
+  color: #374151;
 }
 
 .sm-note-btn.save {

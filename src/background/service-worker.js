@@ -52,13 +52,6 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   }
 });
 
-// Handle keyboard commands
-chrome.commands.onCommand.addListener((command, tab) => {
-  if (command === 'toggle-sidebar' && tab?.id) {
-    chrome.tabs.sendMessage(tab.id, { action: 'toggleSidebar' }).catch(() => {});
-  }
-});
-
 // Detect PDF pages and show appropriate UI
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete' && tab.url) {

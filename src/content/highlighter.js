@@ -451,6 +451,14 @@ const Highlighter = {
       hl.element.classList.add('flash');
       setTimeout(() => hl.element.classList.remove('flash'), 1500);
     }
+  },
+
+  scrollToAndShowPopup(id) {
+    const hl = this.activeHighlights.get(id);
+    if (hl && hl.element) {
+      hl.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => this.showPopupForHighlight(hl.element), 350);
+    }
   }
 };
 

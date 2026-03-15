@@ -46,16 +46,6 @@
     "128": "assets/icons/icon128.png"
   },
 
-  "commands": {
-    "toggle-sidebar": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+S",
-        "mac": "Command+Shift+S"
-      },
-      "description": "Toggle the sidebar"
-    }
-  },
-  
   "web_accessible_resources": [{
     "resources": ["src/pdf/*", "src/welcome/welcome.html"],
     "matches": ["<all_urls>"]
