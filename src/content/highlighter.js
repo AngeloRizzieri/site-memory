@@ -18,49 +18,35 @@ const Highlighter = {
     this.restoreHighlights();
   },
 
-  // Create the color picker popup
+  // Create the color picker popup — minimal ghost design
   createPopup() {
     this.popup = document.createElement('div');
     this.popup.className = 'sm-popup';
     this.popup.innerHTML = `
       <div class="sm-popup-colors">
-        ${this.colors.map((c, i) => `
-          <button class="sm-color ${i === 0 ? 'active' : ''}" data-color="${c}" style="background:${c}"></button>
-        `).join('')}
+        ${this.colors.map((c, i) => `<button class="sm-color ${i === 0 ? 'active' : ''}" data-color="${c}" style="background:${c}"></button>`).join('')}
       </div>
-      <div class="sm-popup-actions">
-        <button class="sm-popup-btn sm-add-note" title="Add note">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
-          </svg>
-        </button>
-        <button class="sm-popup-btn sm-delete" title="Remove">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
-          </svg>
-        </button>
-      </div>
+      <div class="sm-popup-divider"></div>
+      <button class="sm-popup-del" title="Remove">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+        </svg>
+      </button>
     `;
     document.body.appendChild(this.popup);
 
-    // Color selection
     this.popup.querySelectorAll('.sm-color').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         this.popup.querySelectorAll('.sm-color').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         this.changeColor(btn.dataset.color);
+        // Reset auto-dismiss timer on interaction
+        this._schedulePopupDismiss();
       });
     });
 
-    // Add note
-    this.popup.querySelector('.sm-add-note').addEventListener('click', (e) => {
-      e.stopPropagation();
-      this.addNote();
-    });
-
-    // Delete
-    this.popup.querySelector('.sm-delete').addEventListener('click', (e) => {
+    this.popup.querySelector('.sm-popup-del').addEventListener('click', (e) => {
       e.stopPropagation();
       this.deleteCurrentHighlight();
     });
@@ -332,20 +318,24 @@ const Highlighter = {
     return null;
   },
 
+  // Auto-dismiss timer
+  _schedulePopupDismiss() {
+    clearTimeout(this._popupTimer);
+    this._popupTimer = setTimeout(() => this.hidePopup(), 3500);
+  },
+
   // Show popup near element
   showPopup(element, highlightId) {
     this.currentHighlightId = highlightId;
-    
-    const rect = element.getBoundingClientRect();
-    const popupRect = this.popup.getBoundingClientRect();
-    
-    let x = rect.left + rect.width / 2 - 90;
-    let y = rect.top - 50 + window.scrollY;
 
-    // Keep in viewport
-    x = Math.max(10, Math.min(x, window.innerWidth - 190));
-    if (rect.top < 60) {
-      y = rect.bottom + 10 + window.scrollY;
+    const rect = element.getBoundingClientRect();
+    // Popup is ~110px wide × 28px tall
+    let x = rect.left + rect.width / 2 - 55;
+    let y = rect.top - 38 + window.scrollY;
+
+    x = Math.max(8, Math.min(x, window.innerWidth - 118));
+    if (rect.top < 50) {
+      y = rect.bottom + 8 + window.scrollY;
     }
 
     this.popup.style.left = x + 'px';
@@ -359,6 +349,8 @@ const Highlighter = {
         btn.classList.toggle('active', btn.dataset.color === hl.data.color);
       });
     }
+
+    this._schedulePopupDismiss();
   },
 
   // Show popup for existing highlight
@@ -370,6 +362,7 @@ const Highlighter = {
 
   // Hide popup
   hidePopup() {
+    clearTimeout(this._popupTimer);
     this.popup.classList.remove('visible');
     this.currentHighlightId = null;
     this.pendingHighlight = null;
