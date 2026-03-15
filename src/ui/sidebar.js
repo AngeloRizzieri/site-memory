@@ -188,7 +188,10 @@ const Sidebar = {
     return `
       <div class="sm-hl-row" data-id="${h.id}">
         <span class="sm-dot" style="background:${h.color}"></span>
-        <span class="sm-hl-snippet">${Helpers.escapeHtml(text)}</span>
+        <div class="sm-hl-body">
+          <span class="sm-hl-snippet">${Helpers.escapeHtml(text)}</span>
+          ${h.note ? `<span class="sm-hl-note">${Helpers.escapeHtml(h.note)}</span>` : ''}
+        </div>
         ${isCurrentPage ? `
           <button class="sm-hl-action sm-hl-goto" title="Scroll to">
             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>

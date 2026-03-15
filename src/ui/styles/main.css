@@ -433,8 +433,15 @@
 
 .sm-hl-row:hover .sm-dot { opacity: 1; }
 
-.sm-hl-snippet {
+.sm-hl-body {
   flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sm-hl-snippet {
   font-size: 11px;
   color: #9ca3af;
   overflow: hidden;
@@ -443,7 +450,17 @@
   transition: color 0.1s;
 }
 
+.sm-hl-note {
+  font-size: 10px;
+  color: #b0b8c4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-style: italic;
+}
+
 .sm-hl-row:hover .sm-hl-snippet { color: #6b7280; }
+.sm-hl-row:hover .sm-hl-note { color: #9ca3af; }
 
 .sm-hl-action {
   display: none;
