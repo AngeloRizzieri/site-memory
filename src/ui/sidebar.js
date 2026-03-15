@@ -130,7 +130,7 @@ const Sidebar = {
         <div class="sm-page ${isCurrent ? 'current' : ''}" data-page-id="${page.pageId}">
           <div class="sm-page-header">
             <img src="${page.favicon}" class="sm-favicon" onerror="this.style.display='none'">
-            <a href="${page.url}" class="sm-page-title" title="${page.url}">${Helpers.escapeHtml(page.pageTitle)}</a>
+            <a href="${page.url}" class="sm-page-title" title="${page.url}" target="_blank" rel="noopener noreferrer">${Helpers.escapeHtml(page.pageTitle)}</a>
             <span class="sm-count">${page.highlights.length}</span>
             <button class="sm-page-delete" title="Delete all">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -177,24 +177,37 @@ const Sidebar = {
   },
 
   bindContentEvents() {
-    // Delete page
+    // Delete page (two-step: first click shows confirm, second executes)
     this.container.querySelectorAll('.sm-page-delete').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
         const page = btn.closest('.sm-page');
         const pageId = page.dataset.pageId;
-        
-        if (confirm('Delete all highlights from this page?')) {
+
+        if (btn.dataset.confirming === 'true') {
           await Storage.deletePageHighlights(pageId);
-          
-          // Remove from DOM if current page
+
           if (pageId === Helpers.getPageId()) {
-            Highlighter.activeHighlights.forEach((hl, id) => {
+            Highlighter.activeHighlights.forEach((_hl, id) => {
               Highlighter.removeHighlight(id);
             });
           }
-          
+
           this.refresh();
+        } else {
+          btn.dataset.confirming = 'true';
+          btn.title = 'Click again to confirm';
+          btn.style.color = '#ef4444';
+          btn.style.opacity = '1';
+          // Auto-reset after 2s if not confirmed
+          setTimeout(() => {
+            if (btn.dataset.confirming === 'true') {
+              btn.dataset.confirming = '';
+              btn.title = 'Delete all';
+              btn.style.color = '';
+              btn.style.opacity = '';
+            }
+          }, 2000);
         }
       });
     });

@@ -57,6 +57,15 @@
       background: #3f3f46;
       color: #fafafa;
     }
+
+    .toolbar-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+    .toolbar-btn:disabled:hover {
+      background: #27272a;
+      color: #a1a1aa;
+    }
     
     .toolbar-btn.primary {
       background: #facc15;
@@ -166,6 +175,7 @@
       justify-content: center;
       min-height: calc(100vh - 52px);
       padding: 40px;
+      padding-top: 52px;
       text-align: center;
     }
     
@@ -275,6 +285,7 @@
       <button class="toolbar-btn" id="nextPage">→</button>
     </div>
     <button class="toolbar-btn" id="zoomOut">−</button>
+    <span id="zoomLabel" style="font-size:12px;color:#71717a;min-width:38px;text-align:center;">130%</span>
     <button class="toolbar-btn" id="zoomIn">+</button>
   </div>
   

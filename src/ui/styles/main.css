@@ -276,7 +276,8 @@
 }
 
 .sm-page.current {
-  background: rgba(250, 204, 21, 0.03);
+  background: rgba(250, 204, 21, 0.04);
+  border-left: 2px solid rgba(250, 204, 21, 0.35);
 }
 
 .sm-page-header {

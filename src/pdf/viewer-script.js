@@ -18,6 +18,7 @@ const titleEl = document.getElementById('title');
 const pageNumInput = document.getElementById('pageNum');
 const totalPagesEl = document.getElementById('totalPages');
 const hlPopup = document.getElementById('hlPopup');
+const zoomLabel = document.getElementById('zoomLabel');
 
 // Get PDF URL from query params
 const urlParams = new URLSearchParams(window.location.search);
@@ -47,6 +48,8 @@ async function loadPDF(url) {
     // Hide loading, render first page
     loading.classList.add('hidden');
     await renderPage(1);
+    updateZoomLabel();
+    updateNavButtons();
     
   } catch (err) {
     console.error('PDF load error:', err);
@@ -66,7 +69,10 @@ function showError(msg) {
 async function renderPage(pageNum) {
   currentPage = pageNum;
   pageNumInput.value = pageNum;
-  
+
+  // Scroll back to top when changing pages
+  window.scrollTo({ top: 0, behavior: 'instant' });
+
   const page = await pdfDoc.getPage(pageNum);
   const viewport = page.getViewport({ scale });
   
@@ -141,13 +147,18 @@ function handleTextSelection(e) {
   }
   
   selectedText = text;
-  
-  // Show popup near selection
+
+  // Show popup near selection, clamped within viewport
   const range = selection.getRangeAt(0);
   const rect = range.getBoundingClientRect();
-  
-  hlPopup.style.left = (rect.left + rect.width / 2 - 90) + 'px';
-  hlPopup.style.top = (rect.top - 50) + 'px';
+  const popupWidth = 200;
+  let left = rect.left + rect.width / 2 - popupWidth / 2;
+  let top = rect.top - 52;
+  left = Math.max(8, Math.min(left, window.innerWidth - popupWidth - 8));
+  if (top < 60) top = rect.bottom + 8;
+
+  hlPopup.style.left = left + 'px';
+  hlPopup.style.top = top + 'px';
   hlPopup.classList.add('visible');
 }
 
@@ -197,29 +208,43 @@ document.getElementById('saveHighlight').addEventListener('click', async () => {
 });
 
 // Navigation
-document.getElementById('prevPage').addEventListener('click', () => {
-  if (currentPage > 1) renderPage(currentPage - 1);
+const prevBtn = document.getElementById('prevPage');
+const nextBtn = document.getElementById('nextPage');
+
+function updateNavButtons() {
+  prevBtn.disabled = currentPage <= 1;
+  nextBtn.disabled = !pdfDoc || currentPage >= pdfDoc.numPages;
+}
+
+prevBtn.addEventListener('click', () => {
+  if (currentPage > 1) renderPage(currentPage - 1).then(updateNavButtons);
 });
 
-document.getElementById('nextPage').addEventListener('click', () => {
-  if (currentPage < pdfDoc.numPages) renderPage(currentPage + 1);
+nextBtn.addEventListener('click', () => {
+  if (pdfDoc && currentPage < pdfDoc.numPages) renderPage(currentPage + 1).then(updateNavButtons);
 });
 
 pageNumInput.addEventListener('change', () => {
   const num = parseInt(pageNumInput.value);
   if (num >= 1 && num <= pdfDoc.numPages) {
-    renderPage(num);
+    renderPage(num).then(updateNavButtons);
   }
 });
 
 // Zoom
+function updateZoomLabel() {
+  zoomLabel.textContent = Math.round(scale * 100) + '%';
+}
+
 document.getElementById('zoomIn').addEventListener('click', () => {
   scale = Math.min(3, scale + 0.2);
+  updateZoomLabel();
   renderPage(currentPage);
 });
 
 document.getElementById('zoomOut').addEventListener('click', () => {
   scale = Math.max(0.5, scale - 0.2);
+  updateZoomLabel();
   renderPage(currentPage);
 });
 
