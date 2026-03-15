@@ -4,7 +4,7 @@
  */
 
 const Highlighter = {
-  colors: ['#facc15', '#4ade80', '#60a5fa', '#f472b6', '#c084fc', '#fb923c'],
+  colors: ['#a1a1aa', '#facc15', '#4ade80', '#60a5fa', '#f472b6', '#c084fc'],
   activeHighlights: new Map(),
   popup: null,
   noteModal: null,
@@ -151,6 +151,7 @@ const Highlighter = {
 
     chrome.runtime.onMessage.addListener((msg) => {
       if (msg.action === 'toggleSidebar') window.Sidebar?.toggle();
+      if (msg.action === 'highlightSelection') this.handleSelection();
     });
   },
 

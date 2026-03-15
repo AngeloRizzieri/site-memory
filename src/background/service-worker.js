@@ -18,6 +18,12 @@ chrome.runtime.onInstalled.addListener((details) => {
     targetUrlPatterns: ['*://*/*.pdf', '*://*/*.pdf?*']
   });
 
+  chrome.contextMenus.create({
+    id: 'highlightSelection',
+    title: 'Highlight',
+    contexts: ['selection']
+  });
+
   // Show welcome page on first install
   if (details.reason === 'install') {
     chrome.tabs.create({
@@ -35,6 +41,10 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     });
   }
   
+  if (info.menuItemId === 'highlightSelection' && tab?.id) {
+    chrome.tabs.sendMessage(tab.id, { action: 'highlightSelection' });
+  }
+
   if (info.menuItemId === 'openPdfViewer') {
     const pdfUrl = encodeURIComponent(info.linkUrl);
     const viewerUrl = chrome.runtime.getURL('src/pdf/viewer.html') + '?file=' + pdfUrl;

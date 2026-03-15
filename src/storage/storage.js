@@ -92,11 +92,29 @@ const Storage = {
   async search(query) {
     const data = await this.getAll();
     const q = query.toLowerCase();
-    return data.highlights.filter(h => 
-      h.text.toLowerCase().includes(q) || 
+    return data.highlights.filter(h =>
+      h.text.toLowerCase().includes(q) ||
       (h.note && h.note.toLowerCase().includes(q)) ||
       h.pageTitle.toLowerCase().includes(q)
     );
+  },
+
+  // Get custom display names (domain overrides, page title overrides)
+  async getCustomNames() {
+    const data = await this.getAll();
+    return data.customNames || { domains: {}, pages: {} };
+  },
+
+  // Set a custom display name
+  async setCustomName(type, key, name) {
+    const data = await this.getAll();
+    if (!data.customNames) data.customNames = { domains: {}, pages: {} };
+    if (name) {
+      data.customNames[type][key] = name;
+    } else {
+      delete data.customNames[type][key];
+    }
+    await this.saveAll(data);
   }
 };
 

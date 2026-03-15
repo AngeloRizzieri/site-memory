@@ -8,6 +8,7 @@ const Sidebar = {
   searchQuery: '',
   collapsedDomains: new Set(),
   collapsedPages: new Set(),
+  customNames: { domains: {}, pages: {} },
 
   init() {
     this.create();
@@ -50,7 +51,6 @@ const Sidebar = {
       this.refresh();
     });
 
-    // Ctrl+Shift+S is handled by highlighter.js (toggle vs. save-selection)
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && this.isOpen) this.close();
     });
@@ -69,9 +69,10 @@ const Sidebar = {
     this.container.classList.remove('open');
   },
 
-  // Build domain → pages → highlights tree from storage
   async getGroups() {
+    this.customNames = await Storage.getCustomNames();
     let pages;
+
     if (this.searchQuery) {
       const results = await Storage.search(this.searchQuery);
       const grouped = {};
@@ -89,7 +90,6 @@ const Sidebar = {
       pages = await Storage.getOrganizedHighlights();
     }
 
-    // Group pages by domain
     const domains = {};
     for (const page of pages) {
       let domain;
@@ -112,11 +112,11 @@ const Sidebar = {
     if (groups.length === 0) {
       content.innerHTML = `
         <div class="sm-empty">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
             <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
           </svg>
           <p>${this.searchQuery ? 'No results' : 'No highlights yet'}</p>
-          <span>${this.searchQuery ? 'Try a different search' : 'Select any text to start'}</span>
+          <span>${this.searchQuery ? 'Try a different search' : 'Select text, right-click → Highlight'}</span>
         </div>
       `;
       return;
@@ -126,17 +126,26 @@ const Sidebar = {
     this.bindContentEvents();
   },
 
+  getDomainLabel(domain) {
+    return this.customNames.domains[domain] || domain;
+  },
+
+  getPageLabel(page) {
+    return this.customNames.pages[page.pageId] || page.pageTitle;
+  },
+
   renderDomain(group, currentPageId) {
     const total = group.pages.reduce((s, p) => s + p.highlights.length, 0);
     const collapsed = this.collapsedDomains.has(group.domain);
+    const label = Helpers.escapeHtml(this.getDomainLabel(group.domain));
     return `
       <div class="sm-domain" data-domain="${Helpers.escapeHtml(group.domain)}">
         <div class="sm-domain-row">
           <span class="sm-chevron ${collapsed ? 'collapsed' : ''}">
-            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+            <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m6 9 6 6 6-6"/></svg>
           </span>
-          <img src="${group.favicon}" class="sm-favicon" onerror="this.style.display='none'" alt="">
-          <span class="sm-domain-name">${Helpers.escapeHtml(group.domain)}</span>
+          ${group.favicon ? `<img src="${group.favicon}" class="sm-favicon" onerror="this.style.display='none'" alt="">` : ''}
+          <span class="sm-domain-name">${label}</span>
           <span class="sm-badge">${total}</span>
         </div>
         ${collapsed ? '' : `<div class="sm-domain-body">${group.pages.map(p => this.renderPage(p, currentPageId)).join('')}</div>`}
@@ -147,13 +156,14 @@ const Sidebar = {
   renderPage(page, currentPageId) {
     const isCurrent = page.pageId === currentPageId;
     const collapsed = this.collapsedPages.has(page.pageId);
+    const label = Helpers.escapeHtml(this.getPageLabel(page));
     return `
       <div class="sm-page-item ${isCurrent ? 'current' : ''}" data-page-id="${page.pageId}" data-url="${Helpers.escapeHtml(page.url)}">
         <div class="sm-page-row">
           <span class="sm-chevron ${collapsed ? 'collapsed' : ''}">
-            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+            <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m6 9 6 6 6-6"/></svg>
           </span>
-          <span class="sm-page-name" title="${Helpers.escapeHtml(page.url)}">${Helpers.escapeHtml(page.pageTitle)}</span>
+          <span class="sm-page-name">${label}</span>
           <span class="sm-badge">${page.highlights.length}</span>
           <button class="sm-pg-del" title="Delete page">
             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
@@ -165,7 +175,7 @@ const Sidebar = {
   },
 
   renderHighlight(h, isCurrentPage) {
-    const text = h.text.length > 55 ? h.text.substring(0, 55) + '…' : h.text;
+    const text = h.text.length > 52 ? h.text.substring(0, 52) + '…' : h.text;
     return `
       <div class="sm-hl-row" data-id="${h.id}">
         <span class="sm-dot" style="background:${h.color}"></span>
@@ -181,12 +191,37 @@ const Sidebar = {
     `;
   },
 
+  // Inline rename: swap label span with an input
+  startRename(el, currentValue, onSave) {
+    const input = document.createElement('input');
+    input.className = 'sm-rename-input';
+    input.value = currentValue;
+    el.replaceWith(input);
+    input.focus();
+    input.select();
+
+    let saved = false;
+    const finish = () => {
+      if (saved) return;
+      saved = true;
+      onSave(input.value.trim());
+      this.refresh();
+    };
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); finish(); }
+      if (e.key === 'Escape') { saved = true; this.refresh(); }
+    });
+    input.addEventListener('blur', finish);
+  },
+
   bindContentEvents() {
     const content = this.container.querySelector('.sm-content');
 
-    // Domain toggle
+    // Domain row toggle (whole row except the label span)
     content.querySelectorAll('.sm-domain-row').forEach(row => {
-      row.addEventListener('click', () => {
+      row.addEventListener('click', (e) => {
+        if (e.target.closest('.sm-domain-name')) return;
         const domain = row.closest('.sm-domain').dataset.domain;
         this.collapsedDomains.has(domain)
           ? this.collapsedDomains.delete(domain)
@@ -195,10 +230,29 @@ const Sidebar = {
       });
     });
 
-    // Page toggle (click row but not delete button)
+    // Domain name: single click = toggle, double click = rename
+    content.querySelectorAll('.sm-domain-name').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const domain = el.closest('.sm-domain').dataset.domain;
+        this.collapsedDomains.has(domain)
+          ? this.collapsedDomains.delete(domain)
+          : this.collapsedDomains.add(domain);
+        this.refresh();
+      });
+      el.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
+        const domain = el.closest('.sm-domain').dataset.domain;
+        this.startRename(el, this.getDomainLabel(domain), async (name) => {
+          await Storage.setCustomName('domains', domain, name);
+        });
+      });
+    });
+
+    // Page row toggle
     content.querySelectorAll('.sm-page-row').forEach(row => {
       row.addEventListener('click', (e) => {
-        if (e.target.closest('.sm-pg-del')) return;
+        if (e.target.closest('.sm-pg-del') || e.target.closest('.sm-page-name')) return;
         const pageId = row.closest('.sm-page-item').dataset.pageId;
         this.collapsedPages.has(pageId)
           ? this.collapsedPages.delete(pageId)
@@ -207,12 +261,26 @@ const Sidebar = {
       });
     });
 
-    // Page name: open in new tab on click
+    // Page name: single click = open tab, double click = rename
     content.querySelectorAll('.sm-page-name').forEach(el => {
+      let clickTimer = null;
       el.addEventListener('click', (e) => {
         e.stopPropagation();
-        const url = el.closest('.sm-page-item').dataset.url;
-        if (url) window.open(url, '_blank', 'noopener,noreferrer');
+        clearTimeout(clickTimer);
+        clickTimer = setTimeout(() => {
+          const url = el.closest('.sm-page-item').dataset.url;
+          if (url) window.open(url, '_blank', 'noopener,noreferrer');
+        }, 230);
+      });
+      el.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
+        clearTimeout(clickTimer);
+        const item = el.closest('.sm-page-item');
+        const pageId = item.dataset.pageId;
+        const current = this.getPageLabel({ pageId, pageTitle: el.textContent });
+        this.startRename(el, current, async (name) => {
+          await Storage.setCustomName('pages', pageId, name);
+        });
       });
     });
 
@@ -259,7 +327,7 @@ const Sidebar = {
       });
     });
 
-    // Click highlight row → add/edit note
+    // Click highlight row → note modal
     content.querySelectorAll('.sm-hl-row').forEach(el => {
       el.addEventListener('click', () => {
         Highlighter.showNoteModal(el.dataset.id);
