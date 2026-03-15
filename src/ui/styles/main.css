@@ -40,61 +40,69 @@
   30%, 70% { box-shadow: 0 0 0 2px color-mix(in srgb, var(--hl-color) 50%, transparent); }
 }
 
-/* ========== POPUP — ghost minimal ========== */
+/* ========== POPUP — select → pick → highlight ========== */
 .sm-popup {
   position: absolute;
   z-index: 2147483646;
   opacity: 0;
   visibility: hidden;
-  transform: translateY(5px) scale(0.94);
-  transition: opacity 0.1s ease, transform 0.1s ease, visibility 0s 0.1s;
+  transform: translateY(6px);
+  transition: opacity 0.12s ease, transform 0.12s ease, visibility 0s 0.12s;
   display: flex;
   align-items: center;
-  gap: 3px;
-  background: rgba(9, 9, 11, 0.96);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 8px;
-  padding: 5px 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65), 0 2px 6px rgba(0, 0, 0, 0.4);
+  gap: 5px;
+  /* pill shape */
+  background: rgba(10, 10, 12, 0.9);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  border-radius: 999px;
+  padding: 5px 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.55), 0 1px 4px rgba(0, 0, 0, 0.3);
   pointer-events: none;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
 .sm-popup.visible {
   opacity: 1;
   visibility: visible;
-  transform: translateY(0) scale(1);
-  transition: opacity 0.1s ease, transform 0.1s ease;
+  transform: translateY(0);
+  transition: opacity 0.12s ease, transform 0.12s ease;
   pointer-events: auto;
+}
+
+/* In selection mode, hide the delete controls */
+.sm-popup.selection-mode .sm-popup-divider,
+.sm-popup.selection-mode .sm-popup-del {
+  display: none;
 }
 
 .sm-popup-colors {
   display: flex;
-  gap: 4px;
+  gap: 5px;
   align-items: center;
 }
 
+/* Tiny dots — 10px, only the color itself, no heavy chrome */
 .sm-color {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   border: 1.5px solid transparent;
   cursor: pointer;
-  transition: transform 0.12s ease, border-color 0.1s;
+  transition: transform 0.1s ease;
   padding: 0;
   flex-shrink: 0;
+  opacity: 0.85;
 }
 
-.sm-color:hover { transform: scale(1.3); }
-.sm-color.active { border-color: rgba(255, 255, 255, 0.88); }
+.sm-color:hover { transform: scale(1.45); opacity: 1; }
+.sm-color.active { border-color: rgba(255, 255, 255, 0.9); opacity: 1; }
 
 .sm-popup-divider {
   width: 1px;
-  height: 13px;
+  height: 12px;
   background: rgba(255, 255, 255, 0.07);
-  margin: 0 2px;
+  margin: 0 1px;
   flex-shrink: 0;
 }
 
@@ -102,20 +110,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   border: none;
   background: none;
   color: #3f3f46;
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: 50%;
   padding: 0;
   transition: color 0.1s, background 0.1s;
 }
 
 .sm-popup-del:hover {
   color: #ef4444;
-  background: rgba(239, 68, 68, 0.12);
+  background: rgba(239, 68, 68, 0.14);
 }
 
 /* ========== SIDEBAR — file explorer ========== */

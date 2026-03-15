@@ -50,11 +50,8 @@ const Sidebar = {
       this.refresh();
     });
 
+    // Ctrl+Shift+S is handled by highlighter.js (toggle vs. save-selection)
     document.addEventListener('keydown', (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 's') {
-        e.preventDefault();
-        this.toggle();
-      }
       if (e.key === 'Escape' && this.isOpen) this.close();
     });
   },
