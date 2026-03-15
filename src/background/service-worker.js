@@ -38,11 +38,11 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     chrome.tabs.sendMessage(tab.id, {
       action: 'saveImage',
       src: info.srcUrl
-    });
+    }).catch(() => {});
   }
-  
+
   if (info.menuItemId === 'highlightSelection' && tab?.id) {
-    chrome.tabs.sendMessage(tab.id, { action: 'highlightSelection', text: info.selectionText });
+    chrome.tabs.sendMessage(tab.id, { action: 'highlightSelection', text: info.selectionText }).catch(() => {});
   }
 
   if (info.menuItemId === 'openPdfViewer') {
@@ -55,7 +55,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 // Handle keyboard commands
 chrome.commands.onCommand.addListener((command, tab) => {
   if (command === 'toggle-sidebar' && tab?.id) {
-    chrome.tabs.sendMessage(tab.id, { action: 'toggleSidebar' });
+    chrome.tabs.sendMessage(tab.id, { action: 'toggleSidebar' }).catch(() => {});
   }
 });
 
