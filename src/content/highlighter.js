@@ -267,6 +267,7 @@ const Highlighter = {
     if (highlight) {
       await Storage.addHighlight(highlight.data);
       window.Sidebar?.refresh();
+      this.showNoteModal(highlight.id);
     }
   },
 
@@ -286,6 +287,10 @@ const Highlighter = {
 
     this.hidePopup();
     window.getSelection().removeAllRanges();
+
+    if (highlight) {
+      this.showNoteModal(highlight.id);
+    }
   },
 
   // Create a highlight element from a range
