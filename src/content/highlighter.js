@@ -8,6 +8,7 @@ const Highlighter = {
   activeHighlights: new Map(),
   popup: null,
   noteModal: null,
+  lastColor: '#facc15',
   // Selection state (pre-confirmation)
   pendingRange: null,
   pendingText: null,
@@ -198,13 +199,7 @@ const Highlighter = {
       }
 
       if (msg.action === 'highlightSelection') {
-        const sel = window.getSelection();
-        const hasLive = sel && !sel.isCollapsed && sel.toString().trim().length >= 2;
-        if (hasLive) {
-          this.handleSelection();
-        } else if (msg.text && msg.text.trim().length >= 2) {
-          this.handleSelectionByText(msg.text.trim());
-        }
+        this._applyHighlightNow(msg.text);
       }
     });
   },
@@ -255,9 +250,30 @@ const Highlighter = {
     this._schedulePopupDismiss();
   },
 
+  // Direct highlight from context menu — no popup, use last color
+  async _applyHighlightNow(fallbackText) {
+    const sel = window.getSelection();
+    let text, range;
+    if (sel && !sel.isCollapsed && sel.toString().trim().length >= 2) {
+      text = sel.toString().trim();
+      range = sel.getRangeAt(0).cloneRange();
+      sel.removeAllRanges();
+    } else if (fallbackText && fallbackText.trim().length >= 2) {
+      text = fallbackText.trim();
+      range = this.findTextRange(text, null);
+    }
+    if (!text || !range) return;
+    const highlight = this.createHighlight(text, range, this.lastColor);
+    if (highlight) {
+      await Storage.addHighlight(highlight.data);
+      window.Sidebar?.refresh();
+    }
+  },
+
   // User picked a color — NOW create and save the highlight
   async confirmHighlight(color) {
     if (!this.pendingRange || !this.pendingText) return;
+    this.lastColor = color;
 
     const highlight = this.createHighlight(this.pendingText, this.pendingRange, color);
     this.pendingRange = null;
@@ -403,6 +419,7 @@ const Highlighter = {
     if (hl) {
       hl.element.style.setProperty('--hl-color', color);
       hl.data.color = color;
+      this.lastColor = color;
       await Storage.updateHighlight(this.currentHighlightId, { color });
       window.Sidebar?.refresh();
     }
