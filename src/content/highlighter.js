@@ -151,7 +151,15 @@ const Highlighter = {
 
     chrome.runtime.onMessage.addListener((msg) => {
       if (msg.action === 'toggleSidebar') window.Sidebar?.toggle();
-      if (msg.action === 'highlightSelection') this.handleSelection();
+      if (msg.action === 'highlightSelection') {
+        const sel = window.getSelection();
+        const hasLive = sel && !sel.isCollapsed && sel.toString().trim().length >= 2;
+        if (hasLive) {
+          this.handleSelection();
+        } else if (msg.text && msg.text.trim().length >= 2) {
+          this.handleSelectionByText(msg.text.trim());
+        }
+      }
     });
   },
 
@@ -178,6 +186,25 @@ const Highlighter = {
     this.popup.style.left = x + 'px';
     this.popup.style.top = y + 'px';
     this.popup.classList.remove('selection-mode'); // force reflow
+    this.popup.classList.add('visible', 'selection-mode');
+    this._schedulePopupDismiss();
+  },
+
+  // Fallback: selection gone by the time message arrived — find text on page
+  handleSelectionByText(text) {
+    const range = this.findTextRange(text, null);
+    if (!range) return;
+    this.pendingRange = range;
+    this.pendingText = text;
+    this.isSelectionMode = true;
+    const rect = range.getBoundingClientRect();
+    let x = rect.left + rect.width / 2 - 55;
+    let y = rect.top - 36 + window.scrollY;
+    x = Math.max(8, Math.min(x, window.innerWidth - 120));
+    if (rect.top < 50) y = rect.bottom + 8 + window.scrollY;
+    this.popup.style.left = x + 'px';
+    this.popup.style.top = y + 'px';
+    this.popup.classList.remove('selection-mode');
     this.popup.classList.add('visible', 'selection-mode');
     this._schedulePopupDismiss();
   },

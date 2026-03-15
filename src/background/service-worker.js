@@ -42,7 +42,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   }
   
   if (info.menuItemId === 'highlightSelection' && tab?.id) {
-    chrome.tabs.sendMessage(tab.id, { action: 'highlightSelection' });
+    chrome.tabs.sendMessage(tab.id, { action: 'highlightSelection', text: info.selectionText });
   }
 
   if (info.menuItemId === 'openPdfViewer') {
@@ -96,7 +96,7 @@ function injectPdfBanner(tabId, pdfUrl, hasFileAccess) {
 }
 
 // Function to inject into PDF pages
-function showPdfBanner(pdfUrl, hasFileAccess, extensionId) {
+function showPdfBanner(pdfUrl, hasFileAccess, _extensionId) {
   if (document.getElementById('sm-pdf-banner')) return;
   
   const banner = document.createElement('div');
@@ -284,7 +284,7 @@ function showPdfBanner(pdfUrl, hasFileAccess, extensionId) {
 }
 
 // Handle messages
-chrome.runtime.onMessage.addListener((msg, sender, respond) => {
+chrome.runtime.onMessage.addListener((msg, _sender, respond) => {
   if (msg.action === 'openPdfViewer') {
     const pdfUrl = encodeURIComponent(msg.url);
     const viewerUrl = chrome.runtime.getURL('src/pdf/viewer.html') + '?file=' + pdfUrl;
