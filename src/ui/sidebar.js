@@ -6,6 +6,7 @@ const Sidebar = {
   container: null,
   isOpen: false,
   searchQuery: '',
+  filterCurrentPage: false,
   collapsedDomains: new Set(),
   collapsedPages: new Set(),
   customNames: { domains: {}, pages: {} },
@@ -21,8 +22,15 @@ const Sidebar = {
     this.container.innerHTML = `
       <div class="sm-backdrop"></div>
       <div class="sm-panel">
+        <div class="sm-resize-handle"></div>
         <div class="sm-header">
           <span class="sm-title">Memory</span>
+          <button class="sm-filter-btn" title="Show this page only">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+          </button>
           <button class="sm-close">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
@@ -45,6 +53,13 @@ const Sidebar = {
     this.container.querySelector('.sm-close').addEventListener('click', () => this.close());
     this.container.querySelector('.sm-backdrop').addEventListener('click', () => this.close());
 
+    // Filter to current page toggle
+    this.container.querySelector('.sm-filter-btn').addEventListener('click', () => {
+      this.filterCurrentPage = !this.filterCurrentPage;
+      this.container.querySelector('.sm-filter-btn').classList.toggle('active', this.filterCurrentPage);
+      this.refresh();
+    });
+
     const input = this.container.querySelector('.sm-search-input');
     input.addEventListener('input', (e) => {
       this.searchQuery = e.target.value;
@@ -53,6 +68,26 @@ const Sidebar = {
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && this.isOpen) this.close();
+    });
+
+    // Resize handle — drag left edge to resize panel width
+    const handle = this.container.querySelector('.sm-resize-handle');
+    const panel  = this.container.querySelector('.sm-panel');
+    let startX, startW;
+    const onMove = (e) => {
+      const w = Math.max(220, Math.min(480, startW + (startX - e.clientX)));
+      panel.style.width = w + 'px';
+    };
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    handle.addEventListener('mousedown', (e) => {
+      startX = e.clientX;
+      startW = panel.offsetWidth;
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+      e.preventDefault();
     });
   },
 
@@ -80,10 +115,12 @@ const Sidebar = {
 
   async getGroups() {
     this.customNames = await Storage.getCustomNames();
+    const currentPageId = Helpers.getPageId();
     let pages;
 
     if (this.searchQuery) {
-      const results = await Storage.search(this.searchQuery);
+      let results = await Storage.search(this.searchQuery);
+      if (this.filterCurrentPage) results = results.filter(h => h.pageId === currentPageId);
       const grouped = {};
       for (const h of results) {
         if (!grouped[h.pageId]) {
@@ -97,6 +134,7 @@ const Sidebar = {
       pages = Object.values(grouped);
     } else {
       pages = await Storage.getOrganizedHighlights();
+      if (this.filterCurrentPage) pages = pages.filter(p => p.pageId === currentPageId);
     }
 
     const domains = {};
@@ -125,7 +163,7 @@ const Sidebar = {
             <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
           </svg>
           <p>${this.searchQuery ? 'No results' : 'No highlights yet'}</p>
-          <span>${this.searchQuery ? 'Try a different search' : 'Select text, right-click → Highlight'}</span>
+          <span>${this.searchQuery ? 'Try a different search' : this.filterCurrentPage ? 'No highlights on this page yet' : 'Select text, right-click → Highlight'}</span>
         </div>
       `;
       return;
@@ -184,14 +222,20 @@ const Sidebar = {
   },
 
   renderHighlight(h, isCurrentPage) {
-    const text = h.text.length > 52 ? h.text.substring(0, 52) + '…' : h.text;
+    const text = h.text.length > 60 ? h.text.substring(0, 60) + '…' : h.text;
+    const hasNote = h.note && !h.isImage;
+    const leadEl = h.isImage
+      ? `<img src="${Helpers.escapeHtml(h.imageSrc || h.note || '')}" class="sm-hl-thumb" alt="" onerror="this.style.display='none'">`
+      : `<span class="sm-dot" style="background:${h.color}"></span>`;
+    const chevron = `<svg class="sm-note-chev" width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m6 9 6 6 6-6"/></svg>`;
     return `
       <div class="sm-hl-row" data-id="${h.id}">
-        <span class="sm-dot" style="background:${h.color}"></span>
+        ${leadEl}
         <div class="sm-hl-body">
           <span class="sm-hl-snippet">${Helpers.escapeHtml(text)}</span>
-          ${h.note ? `<span class="sm-hl-note">${Helpers.escapeHtml(h.note)}</span>` : ''}
+          ${hasNote ? `<span class="sm-hl-note">${chevron}${Helpers.escapeHtml(h.note)}</span>` : ''}
         </div>
+        <span class="sm-hl-time">${Helpers.timeAgo(h.createdAt)}</span>
         ${isCurrentPage ? `
           <button class="sm-hl-action sm-hl-goto" title="Scroll to">
             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>
@@ -339,10 +383,18 @@ const Sidebar = {
       });
     });
 
+    // Note expand/collapse — stop propagation so row click doesn't fire
+    content.querySelectorAll('.sm-hl-note').forEach(note => {
+      note.addEventListener('click', (e) => {
+        e.stopPropagation();
+        note.classList.toggle('expanded');
+      });
+    });
+
     // Click highlight row → scroll to it and show popup bubble
     content.querySelectorAll('.sm-hl-row').forEach(el => {
       el.addEventListener('click', (e) => {
-        if (e.target.closest('.sm-hl-action')) return;
+        if (e.target.closest('.sm-hl-action') || e.target.closest('.sm-hl-note')) return;
         Highlighter.scrollToAndShowPopup(el.dataset.id);
       });
     });

@@ -9,6 +9,7 @@ const Highlighter = {
   popup: null,
   noteModal: null,
   lastColor: '#facc15',
+  lastHighlightId: null,   // for Ctrl+Z undo
   // Selection state (pre-confirmation)
   pendingRange: null,
   pendingText: null,
@@ -70,9 +71,10 @@ const Highlighter = {
 
     this.popup.querySelector('.sm-popup-note').addEventListener('click', (e) => {
       e.stopPropagation();
-      if (this.currentHighlightId) {
+      const id = this.currentHighlightId; // capture before hidePopup nullifies it
+      if (id) {
         this.hidePopup();
-        this.showNoteModal(this.currentHighlightId);
+        this.showNoteModal(id);
       }
     });
 
@@ -96,6 +98,7 @@ const Highlighter = {
       <div class="sm-note-backdrop"></div>
       <div class="sm-note-dialog">
         <div class="sm-note-header">Add a note</div>
+        <div class="sm-note-preview" style="display:none"></div>
         <textarea class="sm-note-input" placeholder="Write your note here..." rows="3"></textarea>
         <div class="sm-note-actions">
           <button class="sm-note-btn cancel">Cancel</button>
@@ -117,10 +120,28 @@ const Highlighter = {
   showNoteModal(highlightId) {
     this.editingNoteId = highlightId;
     const hl = this.activeHighlights.get(highlightId);
-    const input = this.noteModal.querySelector('.sm-note-input');
-    input.value = hl?.data?.note || '';
+    const existingNote = hl?.data?.note || '';
+    const input   = this.noteModal.querySelector('.sm-note-input');
+    const header  = this.noteModal.querySelector('.sm-note-header');
+    const preview = this.noteModal.querySelector('.sm-note-preview');
+
+    input.value    = existingNote;
+    header.textContent = existingNote ? 'Edit note' : 'Add a note';
+
+    // Show highlighted text as a coloured preview quote
+    if (hl?.data?.text) {
+      const snippet = hl.data.text.length > 90
+        ? hl.data.text.substring(0, 90) + '…'
+        : hl.data.text;
+      preview.textContent = '\u201C' + snippet + '\u201D';
+      preview.style.setProperty('--hl-c', hl.data.color || '#facc15');
+      preview.style.display = '';
+    } else {
+      preview.style.display = 'none';
+    }
+
     this.noteModal.classList.add('visible');
-    setTimeout(() => { input.focus(); input.select(); }, 50);
+    setTimeout(() => { input.focus(); if (existingNote) input.select(); }, 50);
   },
 
   hideNoteModal() {
@@ -157,6 +178,16 @@ const Highlighter = {
         }
       }
       if (e.key === 'Escape') this.hidePopup();
+      // Ctrl+Z — undo last highlight (only when not typing)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !this.noteModal.classList.contains('visible')) {
+        const tag = e.target.tagName;
+        if (tag !== 'INPUT' && tag !== 'TEXTAREA' && this.lastHighlightId) {
+          e.preventDefault();
+          const id = this.lastHighlightId;
+          this.lastHighlightId = null;
+          this.removeHighlight(id).then(() => window.Sidebar?.refresh());
+        }
+      }
     });
 
     // Hide popup when clicking outside
@@ -266,6 +297,7 @@ const Highlighter = {
     const highlight = this.createHighlight(text, range, this.lastColor);
     if (highlight) {
       await Storage.addHighlight(highlight.data);
+      this.lastHighlightId = highlight.id;
       window.Sidebar?.refresh();
       this.showNoteModal(highlight.id);
     }
@@ -282,6 +314,7 @@ const Highlighter = {
 
     if (highlight) {
       await Storage.addHighlight(highlight.data);
+      this.lastHighlightId = highlight.id;
       window.Sidebar?.refresh();
     }
 

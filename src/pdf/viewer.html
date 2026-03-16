@@ -5,130 +5,160 @@
   <title>Site Memory - PDF Viewer</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    
+
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-      background: #0f0f0f;
-      color: #fafafa;
+      background: #1c1c1e;
+      color: #f0f0f0;
       min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
     }
-    
-    /* Toolbar */
+
+    /* ── Toolbar ── */
     .toolbar {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 52px;
-      background: #18181b;
-      border-bottom: 1px solid #27272a;
+      top: 0; left: 0; right: 0;
+      height: 46px;
+      background: #111112;
+      border-bottom: 1px solid #2a2a2e;
       display: flex;
       align-items: center;
-      padding: 0 16px;
-      gap: 12px;
-      z-index: 100;
+      padding: 0 10px;
+      gap: 6px;
+      z-index: 200;
     }
-    
+
     .toolbar-title {
       flex: 1;
-      font-size: 14px;
-      font-weight: 500;
+      font-size: 12px;
+      color: #71717a;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-    }
-    
-    .toolbar-btn {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 14px;
-      background: #27272a;
-      border: none;
-      border-radius: 6px;
-      color: #a1a1aa;
-      font-size: 13px;
-      font-family: inherit;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    
-    .toolbar-btn:hover {
-      background: #3f3f46;
-      color: #fafafa;
+      min-width: 0;
     }
 
-    .toolbar-btn:disabled {
-      opacity: 0.3;
-      cursor: not-allowed;
+    .tb-sep {
+      width: 1px;
+      height: 18px;
+      background: #2a2a2e;
+      flex-shrink: 0;
     }
-    .toolbar-btn:disabled:hover {
-      background: #27272a;
-      color: #a1a1aa;
-    }
-    
-    .toolbar-btn.primary {
-      background: #facc15;
-      color: #0a0a0a;
-    }
-    
-    .toolbar-btn.primary:hover {
-      background: #fbbf24;
-    }
-    
-    .page-nav {
+
+    .tb-btn {
       display: flex;
       align-items: center;
-      gap: 8px;
-      color: #71717a;
-      font-size: 13px;
+      justify-content: center;
+      padding: 5px 8px;
+      gap: 4px;
+      background: transparent;
+      border: none;
+      border-radius: 5px;
+      color: #6b7280;
+      font-size: 12px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.1s, color 0.1s;
+      flex-shrink: 0;
+      white-space: nowrap;
     }
-    
-    .page-nav input {
-      width: 50px;
-      padding: 6px 8px;
-      background: #0a0a0a;
+    .tb-btn:hover { background: #27272a; color: #e4e4e7; }
+    .tb-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .tb-btn:disabled:hover { background: transparent; color: #6b7280; }
+
+    .page-counter {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      color: #6b7280;
+      flex-shrink: 0;
+    }
+    .page-counter input {
+      width: 42px;
+      padding: 3px 6px;
+      background: #1c1c1e;
       border: 1px solid #27272a;
       border-radius: 4px;
-      color: #fafafa;
-      font-size: 13px;
+      color: #e4e4e7;
+      font-size: 12px;
+      font-family: inherit;
       text-align: center;
     }
-    
-    /* Viewer container */
-    .viewer-container {
-      padding-top: 52px;
+    .page-counter input:focus { outline: none; border-color: #3f3f46; }
+
+    .zoom-label {
+      font-size: 11px;
+      color: #52525b;
+      min-width: 34px;
+      text-align: center;
+    }
+
+    /* ── Viewer ── */
+    .viewer {
+      padding-top: 46px;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
-      background: #27272a;
+      background: #1c1c1e;
+      padding-bottom: 60px;
     }
-    
-    /* Page container */
-    .page-container {
-      margin: 20px auto;
-      background: white;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+
+    /* ── Page wrapper (placeholder → rendered) ── */
+    .page-wrapper {
+      margin: 14px auto;
       position: relative;
     }
-    
-    .page-container canvas {
-      display: block;
+
+    .page-placeholder {
+      background: #27272a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 520px;
+      min-height: 720px;
+      border-radius: 2px;
     }
-    
-    /* Text layer for selection */
+
+    .placeholder-label {
+      font-size: 11px;
+      color: #3f3f46;
+    }
+
+    /* ── Rendered page ── */
+    .page-container {
+      position: relative;
+      background: white;
+      box-shadow: 0 2px 24px rgba(0, 0, 0, 0.6);
+    }
+
+    .page-container canvas { display: block; }
+
+    /* Highlight overlay layer — restored highlights */
+    .hl-layer {
+      position: absolute;
+      top: 0; left: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .hl-overlay {
+      position: absolute;
+      pointer-events: none;
+      border-radius: 2px;
+      mix-blend-mode: multiply;
+    }
+
+    /* Text selection layer */
     .text-layer {
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
+      top: 0; left: 0;
       overflow: hidden;
-      line-height: 1.0;
+      line-height: 1;
       pointer-events: auto;
     }
-    
+
     .text-layer > span {
       color: transparent;
       position: absolute;
@@ -136,188 +166,275 @@
       cursor: text;
       transform-origin: 0% 0%;
     }
-    
+
     .text-layer ::selection {
-      background: rgba(250, 204, 21, 0.4);
+      background: rgba(250, 204, 21, 0.35);
     }
-    
-    /* Loading state */
-    .loading {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: calc(100vh - 52px);
-      gap: 16px;
-    }
-    
-    .spinner {
-      width: 36px;
-      height: 36px;
-      border: 3px solid #27272a;
-      border-top-color: #facc15;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-    
-    @keyframes spin { to { transform: rotate(360deg); } }
-    
-    .loading-text {
-      color: #71717a;
-      font-size: 14px;
-    }
-    
-    /* Error state */
-    .error {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: calc(100vh - 52px);
-      padding: 40px;
-      padding-top: 52px;
-      text-align: center;
-    }
-    
-    .error-icon {
-      font-size: 48px;
-      margin-bottom: 16px;
-    }
-    
-    .error h2 {
-      font-size: 20px;
-      margin-bottom: 8px;
-    }
-    
-    .error p {
-      color: #71717a;
-      font-size: 14px;
-      max-width: 400px;
-      line-height: 1.6;
-      margin-bottom: 20px;
-    }
-    
-    /* Highlight popup */
+
+    /* ── Highlight color popup ── */
     .hl-popup {
       position: fixed;
       z-index: 1000;
-      background: #18181b;
-      border: 1px solid #27272a;
-      border-radius: 10px;
-      padding: 8px;
+      background: rgba(255, 255, 255, 0.97);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 999px;
+      padding: 6px 10px;
       display: none;
-      gap: 6px;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+      align-items: center;
+      gap: 5px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.14), 0 1px 3px rgba(0, 0, 0, 0.08);
     }
-    
-    .hl-popup.visible {
-      display: flex;
-    }
-    
-    .hl-popup .color-btn {
-      width: 24px;
-      height: 24px;
+    .hl-popup.visible { display: flex; }
+
+    .color-btn {
+      width: 12px;
+      height: 12px;
       border-radius: 50%;
-      border: 2px solid transparent;
+      border: 1.5px solid transparent;
+      cursor: pointer;
+      transition: transform 0.1s;
+      flex-shrink: 0;
+      opacity: 0.9;
+    }
+    .color-btn:hover { transform: scale(1.4); opacity: 1; }
+
+    /* ── Loading ── */
+    .loading-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: calc(100vh - 46px);
+      gap: 14px;
+    }
+
+    .spinner {
+      width: 30px;
+      height: 30px;
+      border: 2px solid #27272a;
+      border-top-color: #facc15;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-text { color: #52525b; font-size: 13px; }
+
+    /* ── Error ── */
+    .error-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: calc(100vh - 46px);
+      gap: 12px;
+      padding: 40px;
+      text-align: center;
+    }
+    .error-state h2 { font-size: 18px; color: #e4e4e7; margin-bottom: 4px; }
+    .error-state p { color: #71717a; font-size: 13px; max-width: 380px; line-height: 1.6; }
+
+    .btn-primary {
+      background: #facc15;
+      border: none;
+      border-radius: 7px;
+      color: #0a0a0a;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      padding: 8px 18px;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background 0.1s;
+    }
+    .btn-primary:hover { background: #fbbf24; }
+
+    /* ── Note modal ── */
+    .note-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+    }
+    .note-modal.visible { display: flex; }
+
+    .note-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(3px);
+    }
+
+    .note-dialog {
+      position: relative;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 18px;
+      width: 300px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+      transform: scale(0.96);
+      transition: transform 0.15s ease;
+    }
+    .note-modal.visible .note-dialog { transform: scale(1); }
+
+    .note-header {
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 10px;
+    }
+
+    .note-textarea {
+      width: 100%;
+      background: #f9fafb;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 7px;
+      padding: 9px 11px;
+      font-size: 13px;
+      font-family: inherit;
+      color: #111827;
+      resize: none;
+      outline: none;
+      line-height: 1.5;
+      margin-bottom: 10px;
+    }
+    .note-textarea:focus { border-color: rgba(0, 0, 0, 0.2); background: #fff; }
+    .note-textarea::placeholder { color: #9ca3af; }
+
+    .note-actions {
+      display: flex;
+      gap: 7px;
+      justify-content: flex-end;
+    }
+
+    .note-btn {
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      font-family: inherit;
       cursor: pointer;
       transition: all 0.1s;
     }
-    
-    .hl-popup .color-btn:hover {
-      transform: scale(1.15);
+    .note-btn.cancel {
+      background: transparent;
+      border: 1px solid rgba(0, 0, 0, 0.13);
+      color: #6b7280;
     }
-    
-    .hl-popup .color-btn.active {
-      border-color: white;
-    }
-    
-    .hl-popup .action-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 28px;
-      height: 28px;
-      background: #27272a;
+    .note-btn.cancel:hover { background: #f9fafb; }
+    .note-btn.save {
+      background: #facc15;
       border: none;
-      border-radius: 6px;
-      color: #a1a1aa;
-      cursor: pointer;
-      margin-left: 4px;
+      color: #0a0a0a;
+      font-weight: 600;
     }
-    
-    .hl-popup .action-btn:hover {
-      background: #3f3f46;
-      color: #fafafa;
-    }
-    
-    /* Toast */
+    .note-btn.save:hover { background: #fbbf24; }
+
+    /* ── Toast ── */
     .toast {
       position: fixed;
-      bottom: 24px;
+      bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
-      background: #18181b;
+      background: #111112;
       border: 1px solid #27272a;
       border-radius: 8px;
-      padding: 12px 20px;
-      color: #fafafa;
-      font-size: 13px;
-      z-index: 1001;
-      animation: toastIn 0.3s ease;
+      padding: 9px 16px;
+      color: #e4e4e7;
+      font-size: 12px;
+      z-index: 1500;
+      animation: toastIn 0.2s ease;
     }
-    
     @keyframes toastIn {
-      from { opacity: 0; transform: translateX(-50%) translateY(10px); }
-      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+      from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+      to   { opacity: 1; transform: translateX(-50%) translateY(0); }
     }
-    
-    /* Hidden */
+
     .hidden { display: none !important; }
   </style>
 </head>
 <body>
+
+  <!-- Toolbar -->
   <div class="toolbar">
-    <span class="toolbar-title" id="title">Loading PDF...</span>
-    <div class="page-nav">
-      <button class="toolbar-btn" id="prevPage">←</button>
-      <input type="number" id="pageNum" value="1" min="1">
-      <span>/ <span id="totalPages">1</span></span>
-      <button class="toolbar-btn" id="nextPage">→</button>
-    </div>
-    <button class="toolbar-btn" id="zoomOut">−</button>
-    <span id="zoomLabel" style="font-size:12px;color:#71717a;min-width:38px;text-align:center;">130%</span>
-    <button class="toolbar-btn" id="zoomIn">+</button>
-  </div>
-  
-  <div class="viewer-container" id="viewer">
-    <div class="loading" id="loading">
-      <div class="spinner"></div>
-      <span class="loading-text">Loading PDF...</span>
-    </div>
-  </div>
-  
-  <div class="error hidden" id="error">
-    <span class="error-icon">😕</span>
-    <h2>Couldn't load PDF</h2>
-    <p id="errorMsg">There was a problem loading this PDF.</p>
-    <button class="toolbar-btn primary" onclick="location.reload()">Try Again</button>
-  </div>
-  
-  <!-- Highlight popup -->
-  <div class="hl-popup" id="hlPopup">
-    <button class="color-btn active" data-color="#facc15" style="background:#facc15"></button>
-    <button class="color-btn" data-color="#4ade80" style="background:#4ade80"></button>
-    <button class="color-btn" data-color="#60a5fa" style="background:#60a5fa"></button>
-    <button class="color-btn" data-color="#f472b6" style="background:#f472b6"></button>
-    <button class="color-btn" data-color="#c084fc" style="background:#c084fc"></button>
-    <button class="action-btn" id="saveHighlight" title="Save">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <polyline points="20 6 9 17 4 12"/>
+    <button class="tb-btn" id="prevPage" title="Previous page (← arrow)">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="m15 18-6-6 6-6"/>
       </svg>
     </button>
+    <div class="page-counter">
+      <input type="number" id="pageNum" value="1" min="1">
+      <span>/ <span id="totalPages">—</span></span>
+    </div>
+    <button class="tb-btn" id="nextPage" title="Next page (→ arrow)">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="m9 18 6-6-6-6"/>
+      </svg>
+    </button>
+    <div class="tb-sep"></div>
+    <button class="tb-btn" id="zoomOut" title="Zoom out (Ctrl -)">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M5 12h14"/>
+      </svg>
+    </button>
+    <span class="zoom-label" id="zoomLabel">130%</span>
+    <button class="tb-btn" id="zoomIn" title="Zoom in (Ctrl +)">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M12 5v14M5 12h14"/>
+      </svg>
+    </button>
+    <button class="tb-btn" id="fitWidth" title="Fit to width">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+      </svg>
+    </button>
+    <div class="tb-sep"></div>
+    <span class="toolbar-title" id="title">Loading…</span>
   </div>
 
-  <!-- Load PDF.js from extension's local files -->
+  <!-- Scrollable viewer -->
+  <div class="viewer" id="viewer">
+    <div class="loading-state" id="loadingState">
+      <div class="spinner"></div>
+      <span class="loading-text">Loading PDF…</span>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div class="error-state hidden" id="errorState">
+    <h2>Couldn't load this PDF</h2>
+    <p id="errorMsg">There was a problem loading this file.</p>
+    <button class="btn-primary" onclick="location.reload()">Try Again</button>
+  </div>
+
+  <!-- Color picker popup -->
+  <div class="hl-popup" id="hlPopup">
+    <button class="color-btn" data-color="#a1a1aa" style="background:#a1a1aa" title="Grey"></button>
+    <button class="color-btn" data-color="#facc15" style="background:#facc15" title="Yellow"></button>
+    <button class="color-btn" data-color="#4ade80" style="background:#4ade80" title="Green"></button>
+    <button class="color-btn" data-color="#60a5fa" style="background:#60a5fa" title="Blue"></button>
+    <button class="color-btn" data-color="#f472b6" style="background:#f472b6" title="Pink"></button>
+    <button class="color-btn" data-color="#c084fc" style="background:#c084fc" title="Purple"></button>
+  </div>
+
+  <!-- Note modal -->
+  <div class="note-modal" id="noteModal">
+    <div class="note-backdrop" id="noteBackdrop"></div>
+    <div class="note-dialog">
+      <div class="note-header">Add a note</div>
+      <textarea class="note-textarea" id="noteTextarea" placeholder="Write your note here…" rows="3"></textarea>
+      <div class="note-actions">
+        <button class="note-btn cancel" id="noteCancelBtn">Cancel</button>
+        <button class="note-btn save" id="noteSaveBtn">Save</button>
+      </div>
+    </div>
+  </div>
+
   <script src="pdf.min.js"></script>
   <script src="viewer-script.js"></script>
 </body>

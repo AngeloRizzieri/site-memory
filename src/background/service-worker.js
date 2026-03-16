@@ -2,6 +2,29 @@
  * Background service worker
  */
 
+// ── Badge count ───────────────────────────────────────────────────────────────
+async function updateBadge() {
+  const result = await chrome.storage.local.get(['site_memory_data']);
+  const count  = (result.site_memory_data?.highlights || []).length;
+  const label  = count > 0 ? (count > 99 ? '99+' : String(count)) : '';
+  chrome.action.setBadgeText({ text: label });
+  chrome.action.setBadgeBackgroundColor({ color: '#facc15' });
+  chrome.action.setBadgeTextColor({ color: '#111111' });
+}
+
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.site_memory_data) updateBadge();
+});
+
+chrome.runtime.onStartup.addListener(updateBadge);
+
+// Extension icon click → toggle sidebar on the active tab
+chrome.action.onClicked.addListener((tab) => {
+  if (tab?.id) {
+    chrome.tabs.sendMessage(tab.id, { action: 'toggleSidebar' }).catch(() => {});
+  }
+});
+
 // On install - show welcome/setup page
 chrome.runtime.onInstalled.addListener((details) => {
   // Create context menus
@@ -30,6 +53,7 @@ chrome.runtime.onInstalled.addListener((details) => {
       url: chrome.runtime.getURL('src/welcome/welcome.html')
     });
   }
+  updateBadge();
 });
 
 // Handle context menu clicks

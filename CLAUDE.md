@@ -20,14 +20,14 @@ src/
   storage/
     storage.js            # Thin wrapper around chrome.storage.local
   ui/
-    sidebar.js            # Right-side panel: list all highlights grouped by page
+    sidebar.js            # Right-side panel: list all highlights grouped by domain → page
     styles/main.css       # All injected UI styles (highlights, popup, sidebar, note modal)
   utils/
     helpers.js            # Shared utilities: ID generation, page ID, favicon, HTML escaping
     welcome-init.js       # Logic for the welcome page (copy URL, close tab)
   pdf/
     viewer.html           # Standalone PDF viewer page (chrome-extension:// URL)
-    viewer-script.js      # PDF.js rendering + text-layer + highlight saving
+    viewer-script.js      # PDF.js rendering + continuous scroll + highlight saving/restoring
     pdf.min.js            # Bundled PDF.js library
     pdf.worker.min.js     # PDF.js web worker
   welcome/
@@ -51,7 +51,7 @@ All globals use the `window.*` pattern so scripts can reference each other safel
 ```js
 {
   id: "hl_<timestamp>_<random>",  // unique ID
-  text: string,                    // highlighted text
+  text: string,                    // highlighted text (or image filename)
   color: string,                   // hex color e.g. "#facc15"
   note: string,                    // optional annotation
   context: string,                 // surrounding text for re-anchoring
@@ -60,28 +60,65 @@ All globals use the `window.*` pattern so scripts can reference each other safel
   url: string,                     // full URL for the page link
   favicon: string,                 // Google favicon service URL
   createdAt: number,               // Date.now()
+  // Image-only fields:
+  isImage: boolean,
+  imageSrc: string,
   // PDF-only fields:
   isPdf: boolean,
   pdfPage: number
 }
 ```
 
-All highlights are stored in one `chrome.storage.local` key: `site_memory_data` as `{ highlights: [] }`.
+Custom display names (domain/page rename) are stored alongside highlights:
+```js
+{ highlights: [], customNames: { domains: {}, pages: {} } }
+```
+
+All data lives in one `chrome.storage.local` key: `site_memory_data`.
 
 ## Key Design Decisions
 
-- **Auto-highlight on mouseup**: Text is highlighted immediately on selection (no separate "save" step). The popup that appears lets users change color, add a note, or delete.
-- **Context-based restoration**: Highlights are re-anchored on page load by searching for the saved text within nodes that match the surrounding `context` string. This handles minor page edits but fails if the text changes significantly.
-- **`surroundContents()` limitation**: The highlighter uses `Range.surroundContents()` which throws if a selection spans multiple HTML elements. Selections that cross tag boundaries are silently dropped.
-- **PDF viewer is single-page**: `viewer-script.js` renders one page at a time (not continuous scroll). PDF highlights saved here are stored but **not visually restored on reload** (rendering back onto canvas is out of scope).
-- **No background page**: Service worker is stateless; all durable state lives in `chrome.storage.local`.
+- **Highlight triggers (no auto-highlight):**
+  - Right-click → "Highlight Selection" → immediately saves with `lastColor`, then auto-opens note modal
+  - Ctrl+Shift+S with text selected → shows color picker bubble → pick color → saves → auto-opens note modal
+  - Ctrl+Shift+S with nothing selected → toggles sidebar open/closed
+  - No manifest `commands` key (removed to prevent double-firing with content script keydown handler)
+
+- **Note modal auto-opens on every new highlight** — so users can annotate right away. Cancel skips the note.
+
+- **Context-based restoration:** Highlights are re-anchored on page load by searching for saved text within nodes matching the surrounding `context` string. Handles minor page edits but fails if text changes significantly.
+
+- **`surroundContents()` limitation:** Throws if a selection spans multiple HTML elements. Selections crossing tag boundaries are silently dropped.
+
+- **Sidebar is light-themed** to match the page background. Uses `getComputedStyle` on body/html at open time, set as `--sm-bg` CSS variable on the panel.
+
+- **Sidebar note expansion:** Notes in sidebar are truncated by default. Click the note text to expand/collapse to full multi-line. Clicking a non-note area of the highlight row scrolls to and shows the popup.
+
+- **Image highlights:** Right-clicking an image → "Save Image to Memory" stores a highlight with `isImage: true`, `imageSrc`, and the URL as the note. Sidebar shows a thumbnail instead of a color dot.
+
+- **PDF viewer — continuous scroll:** All pages render in a single scrollable column. Pages 1–2 render immediately; remaining pages lazy-render via `IntersectionObserver` as they approach the viewport.
+
+- **PDF text layer Y-coordinate fix:** The correct formula is `tx[5] - fontSize` (not `viewport.height - tx[5] - fontSize`). `Util.transform` produces `tx[5]` already in CSS screen coordinates (pixels from top); subtracting `fontSize` gives the top of the glyph. The old inverted formula placed spans upside-down, breaking text selection.
+
+- **PDF highlight restoration:** Saved PDF highlights are drawn as colored overlay `<div>` elements on the `hl-layer` (positioned absolutely over the canvas). Matching is done by checking if a text content item's string appears within the saved highlight text.
+
+- **No background page:** Service worker is stateless; all durable state lives in `chrome.storage.local`.
+
+## Highlight Popup Modes
+
+The single `.sm-popup` element operates in two modes toggled by CSS class:
+
+| Mode | CSS class | Visible controls |
+|------|-----------|-----------------|
+| Selection (new) | `selection-mode` | color dots only |
+| Edit (existing) | _(none)_ | color dots + note pencil + sidebar icon + delete |
 
 ## Common Tasks
 
 ### Load the extension for testing
 1. Open `chrome://extensions`
 2. Enable **Developer mode**
-3. Click **Load unpacked** → select this folder
+3. Click **Load unpacked** → select the root folder (where `manifest.json` is)
 
 ### Reload after changes
 - Background service worker: click the circular reload icon on `chrome://extensions`
@@ -96,7 +133,7 @@ All highlights are stored in one `chrome.storage.local` key: `site_memory_data` 
 ## Known Limitations
 
 - Highlights fail silently when `surroundContents()` throws (selection crosses element boundaries)
-- PDF highlights (saved from viewer) are **not re-rendered** when the viewer is reopened
+- PDF highlight restoration uses substring matching — very short or very common words may produce extra overlays
 - `chrome.extension.isAllowedFileSchemeAccess` is deprecated in MV3 but still functional
 - `getPageId()` uses `hostname + pathname` only, so URL fragments/query params won't separate pages
 
@@ -104,9 +141,13 @@ All highlights are stored in one `chrome.storage.local` key: `site_memory_data` 
 
 | Token | Hex | Usage |
 |-------|-----|-------|
-| Background | `#0a0a0a` | App background |
-| Surface | `#18181b` | Cards, popups |
-| Border | `#27272a` | Dividers |
-| Muted | `#71717a` | Secondary text |
-| Accent | `#facc15` | Highlights, CTAs |
+| Accent | `#facc15` | Yellow highlight, Save button, CTAs |
+| Grey highlight | `#a1a1aa` | First/default highlight color option |
+| Green | `#4ade80` | Color option |
+| Blue | `#60a5fa` | Color option |
+| Pink | `#f472b6` | Color option |
+| Purple | `#c084fc` | Color option |
 | Danger | `#ef4444` | Delete actions |
+
+Sidebar/popup/note modal use a **light theme** (white backgrounds, dark text) to blend with page content.
+PDF viewer uses its own **dark theme** (standalone page, not injected).

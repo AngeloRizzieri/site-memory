@@ -457,7 +457,50 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-style: italic;
+  cursor: pointer;
+  transition: color 0.1s;
 }
+
+.sm-hl-note:hover { color: #9ca3af; }
+
+.sm-hl-note.expanded {
+  white-space: normal;
+  overflow-y: auto;
+  text-overflow: unset;
+  max-height: 120px;
+  line-height: 1.5;
+}
+
+/* Chevron inside note — rotates when expanded */
+.sm-note-chev {
+  display: inline;
+  vertical-align: middle;
+  margin-right: 2px;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+  opacity: 0.5;
+}
+.sm-hl-note.expanded .sm-note-chev { transform: rotate(180deg); opacity: 0.8; }
+
+.sm-hl-thumb {
+  width: 22px;
+  height: 22px;
+  object-fit: cover;
+  border-radius: 3px;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+/* Timestamp — invisible until row hover */
+.sm-hl-time {
+  font-size: 9px;
+  color: #d1d5db;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.1s;
+  font-variant-numeric: tabular-nums;
+}
+.sm-hl-row:hover .sm-hl-time { opacity: 1; }
 
 .sm-hl-row:hover .sm-hl-snippet { color: #6b7280; }
 .sm-hl-row:hover .sm-hl-note { color: #9ca3af; }
@@ -598,3 +641,49 @@
 }
 
 .sm-note-btn.save:hover { background: #fbbf24; }
+
+/* Note modal — highlighted text preview quote */
+.sm-note-preview {
+  font-size: 11px;
+  color: #6b7280;
+  font-style: italic;
+  line-height: 1.45;
+  margin-bottom: 10px;
+  padding: 7px 10px 7px 12px;
+  background: color-mix(in srgb, var(--hl-c, #facc15) 10%, transparent);
+  border-left: 2px solid var(--hl-c, #facc15);
+  border-radius: 0 4px 4px 0;
+  word-break: break-word;
+}
+
+/* ── Sidebar filter button ── */
+.sm-filter-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: none;
+  border: none;
+  color: #d1d5db;
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 0;
+  transition: color 0.1s, background 0.1s;
+  flex-shrink: 0;
+}
+.sm-filter-btn:hover { color: #6b7280; background: rgba(0, 0, 0, 0.05); }
+.sm-filter-btn.active { color: #374151; background: rgba(0, 0, 0, 0.07); }
+
+/* ── Sidebar resize handle ── */
+.sm-resize-handle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  cursor: ew-resize;
+  z-index: 10;
+  transition: background 0.15s;
+}
+.sm-resize-handle:hover { background: rgba(0, 0, 0, 0.06); }
